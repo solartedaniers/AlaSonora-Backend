@@ -77,3 +77,28 @@ Todas las rutas van bajo `/api` y, salvo las públicas, exigen `Authorization: B
 | `GET /profile/me`, `PUT /profile/me` | sesión | Perfil propio |
 | `GET /notifications`, `POST /notifications/read` | sesión | Avisos de la campana |
 | `/admin/**` | rol ADMIN | Gestión de usuarios y moderación de detecciones |
+
+## Despliegue en Render (Docker)
+
+El `Dockerfile` compila el jar con el wrapper sobre JDK 21 y lo corre sobre un JRE 21 liviano, con
+`-XX:MaxRAMPercentage=75` para instancias de 512 MB. El servicio vive en la raíz de este
+repositorio, así que el Root Directory queda vacío.
+
+| Ajuste | Valor |
+|---|---|
+| Runtime | Docker |
+| Root Directory | *(vacío)* |
+| Dockerfile Path | `./Dockerfile` |
+
+Variables: las obligatorias de arriba, más `AI_ENGINE_BASE_URL` (URL pública del motor de IA) y
+`APP_CORS_ALLOWEDORIGINS` (URL del frontend). Render inyecta `PORT`.
+
+## Proyecto AlaSonora
+
+| Parte | Repositorio |
+|---|---|
+| Frontend (Angular, PWA con SSR) | https://github.com/solartedaniers/AlaSonora-Frontend |
+| Backend (este repositorio) | https://github.com/solartedaniers/AlaSonora-Backend |
+| Motor de IA (FastAPI + BirdNET) | https://github.com/solartedaniers/AlaSonora-IA |
+
+App desplegada: https://alasonora-frontend.onrender.com · API: https://alasonora-backend.onrender.com/api
