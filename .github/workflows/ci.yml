@@ -1,0 +1,20 @@
+# Compilo y corro las pruebas con JDK 21; sin DB_URL, contextLoads se salta (no hay base de datos en CI).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - run: cp .env.example .env
+      - run: chmod +x mvnw && ./mvnw -B test
