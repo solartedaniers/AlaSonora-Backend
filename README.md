@@ -56,3 +56,24 @@ cp .env.example .env
 tiene valor (en el entorno o en el `.env`); con el `.env.example` se salta con ese motivo. Las demás
 pruebas son unitarias y no necesitan red. El workflow `.github/workflows/ci.yml` corre lo mismo en
 cada push a `main`.
+
+## API REST
+
+Todas las rutas van bajo `/api` y, salvo las públicas, exigen `Authorization: Bearer <JWT de Supabase>`.
+
+| Método y ruta | Acceso | Uso |
+|---|---|---|
+| `GET /species`, `GET /species/{id}` | público | Catálogo de especies |
+| `GET /network-stats` | público | Estadísticas de la red de observadores |
+| `GET /detections` | público | Detecciones públicas |
+| `GET /usernames/availability` | público | Disponibilidad del nombre de usuario (registro) |
+| `GET /detections/feed`, `GET /detections/{id}` | sesión | Feed y detalle de detecciones |
+| `GET /detections/mine`, `GET /detections/mine/stats` | sesión | Historial y estadísticas propias |
+| `POST /detections` | sesión | Guarda una detección confirmada |
+| `PUT /detections/{id}/observer-photo` | sesión | Asocia la foto del observador |
+| `POST /detections/classify` | sesión | Clasifica un audio con el motor de IA (asíncrono) |
+| `POST /photo-classifications` | sesión | Identifica un ave por foto |
+| `GET /ai/status` | sesión | Estado del motor de IA; también lo despierta |
+| `GET /profile/me`, `PUT /profile/me` | sesión | Perfil propio |
+| `GET /notifications`, `POST /notifications/read` | sesión | Avisos de la campana |
+| `/admin/**` | rol ADMIN | Gestión de usuarios y moderación de detecciones |
