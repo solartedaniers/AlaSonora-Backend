@@ -38,7 +38,7 @@ Con valor por defecto (las más usadas):
 | Variable | Por defecto | Uso |
 |---|---|---|
 | `AI_ENGINE_BASE_URL` | `http://localhost:8000` | URL del motor de IA |
-| `APP_CORS_ALLOWEDORIGINS` | `http://localhost:4200,http://localhost:4000` | Orígenes permitidos (en producción, la URL del frontend) |
+| `app.cors.allowed-origins` | `http://localhost:4200,http://localhost:4000` | Orígenes permitidos (en producción, la URL del frontend). También funciona como `APP_CORS_ALLOWEDORIGINS` |
 | `PORT` | `8083` | Puerto HTTP |
 
 El resto (timeouts, reintentos y calentamiento del motor, límites de audio, limpieza de grabaciones
@@ -91,7 +91,8 @@ repositorio, así que el Root Directory queda vacío.
 | Dockerfile Path | `./Dockerfile` |
 
 Variables: las obligatorias de arriba, más `AI_ENGINE_BASE_URL` (URL pública del motor de IA) y
-`APP_CORS_ALLOWEDORIGINS` (URL del frontend). Render inyecta `PORT`.
+`app.cors.allowed-origins` (URL del frontend; Render acepta el nombre con puntos y guion tal cual, y
+`APP_CORS_ALLOWEDORIGINS` también funciona). Render inyecta `PORT`.
 
 ## Proyecto AlaSonora
 
