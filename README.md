@@ -38,7 +38,7 @@ Con valor por defecto (las más usadas):
 | Variable | Por defecto | Uso |
 |---|---|---|
 | `AI_ENGINE_BASE_URL` | `http://localhost:8000` | URL del motor de IA |
-| `app.cors.allowed-origins` | `http://localhost:4200,http://localhost:4000` | Orígenes permitidos (en producción, la URL del frontend). También funciona como `APP_CORS_ALLOWEDORIGINS` |
+| `app.cors.allowed-origins` | `http://localhost:4200,http://localhost:4000` | Orígenes permitidos, separados por coma y sin barra final (en producción, el dominio propio del frontend, su `www` y la URL de onrender). También funciona como `APP_CORS_ALLOWEDORIGINS` |
 | `PORT` | `8083` | Puerto HTTP |
 
 El resto (timeouts, reintentos y calentamiento del motor, límites de audio, limpieza de grabaciones
@@ -91,7 +91,7 @@ repositorio, así que el Root Directory queda vacío.
 | Dockerfile Path | `./Dockerfile` |
 
 Variables: las obligatorias de arriba, más `AI_ENGINE_BASE_URL` (URL pública del motor de IA) y
-`app.cors.allowed-origins` (URL del frontend; Render acepta el nombre con puntos y guion tal cual, y
+`app.cors.allowed-origins` (orígenes del frontend separados por coma: `https://alasonora.com,https://www.alasonora.com,https://alasonora-frontend.onrender.com`; Render acepta el nombre con puntos y guion tal cual, y
 `APP_CORS_ALLOWEDORIGINS` también funciona). Render inyecta `PORT`.
 
 ## Proyecto AlaSonora
@@ -102,4 +102,4 @@ Variables: las obligatorias de arriba, más `AI_ENGINE_BASE_URL` (URL pública d
 | Backend (este repositorio) | https://github.com/solartedaniers/AlaSonora-Backend |
 | Motor de IA (FastAPI + BirdNET) | https://github.com/solartedaniers/AlaSonora-IA |
 
-App desplegada: https://alasonora-frontend.onrender.com · API: https://alasonora-backend.onrender.com/api
+App desplegada: https://alasonora.com · API: https://alasonora-backend.onrender.com/api
