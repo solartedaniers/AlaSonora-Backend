@@ -13,9 +13,8 @@ import com.alasonora.backend.config.OrphanRecordingCleanupProperties;
 import com.alasonora.backend.config.SupabaseProperties;
 
 /**
- * Borra grabaciones subidas que nunca se guardaron como detección (resultado
- * descartado o clasificación fallida). No toco objetos más nuevos que min-age:
- * pueden ser de un resultado en revisión o de una sincronización offline en curso.
+ * Borro las grabaciones subidas que nunca se guardaron como detección; no toco las más nuevas que min-age
+ * porque pueden ser de un resultado en revisión o de una sincronización offline.
  */
 @Component
 @ConditionalOnProperty(prefix = "storage.orphan-recordings", name = "enabled", havingValue = "true")

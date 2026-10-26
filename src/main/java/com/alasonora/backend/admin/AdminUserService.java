@@ -36,9 +36,7 @@ public class AdminUserService {
         return profileRepository.findAll().stream().map(ProfileDto::fromEntity).toList();
     }
 
-    // El usuario se crea primero en Supabase Auth (única fuente de verdad para
-    // login) y luego se refleja de inmediato en profiles, sin esperar al alta
-    // perezosa que hace ProfileController en el primer login.
+    // Creo el usuario primero en Supabase Auth (fuente de verdad del login) y lo reflejo enseguida en profiles.
     public ProfileDto createUser(CreateUserRequest request) {
         // Valido el usuario antes de crear la cuenta en Supabase: así un nombre repetido no deja una cuenta a medias.
         String username = usernameService.requireUsable(request.username(), null);

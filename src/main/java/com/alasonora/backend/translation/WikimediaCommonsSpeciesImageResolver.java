@@ -11,13 +11,7 @@ import org.springframework.web.client.RestClientException;
 import com.alasonora.backend.config.SpeciesTranslationProperties;
 import tools.jackson.databind.JsonNode;
 
-/**
- * Busca una foto de referencia en Wikimedia Commons (API pública, gratuita,
- * sin API key) por nombre científico. Igual que
- * {@link WikidataSpeciesCommonNameTranslator}, sin catálogo local: cualquier
- * especie con una foto subida a Commons (la gran mayoría) se resuelve en
- * tiempo real.
- */
+/** Busco una foto de referencia en Wikimedia Commons por nombre científico, sin API key ni catálogo local. */
 @Component
 public class WikimediaCommonsSpeciesImageResolver implements SpeciesImageResolver {
 
@@ -58,8 +52,7 @@ public class WikimediaCommonsSpeciesImageResolver implements SpeciesImageResolve
                 .body(JsonNode.class);
             return extractThumbnailUrl(response);
         } catch (RestClientException ex) {
-            // Falla de red o límite de tasa de Commons: se degrada en
-            // silencio porque el llamador ya tiene un respaldo (placeholder).
+            // Si Commons falla sigo sin foto: el llamador ya tiene respaldo.
             return Optional.empty();
         }
     }

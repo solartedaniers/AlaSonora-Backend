@@ -13,11 +13,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
-/**
- * id es auth.users.id de Supabase Auth, asignado (no generado) al crear el perfil del
- * usuario registrado. La FK a auth.users se agrega a mano por SQL, porque ddl-auto de
- * Hibernate solo maneja el esquema de la aplicación, no el de Supabase Auth.
- */
+/** El id es el de auth.users, asignado y no generado; agrego la FK por SQL porque ddl-auto no maneja el esquema de Supabase. */
 @Entity
 @Table(name = "profiles")
 @Getter
@@ -52,9 +48,7 @@ public class Profile {
     @ColumnDefault("'USER'")
     private SystemRole systemRole = SystemRole.USER;
 
-    // Cache local del baneo en Supabase Auth (la fuente real de verdad,
-    // enforced vía ban_duration): solo sirve para pintar el estado en el
-    // panel de administración, no para autorizar nada en este backend.
+    // Copia local del baneo de Supabase Auth: solo la uso para pintar el panel, no para autorizar.
     @Column(nullable = false)
     @ColumnDefault("false")
     private boolean suspended;

@@ -45,8 +45,7 @@ public class DetectionService {
         this.storageProperties = supabaseProperties.storage();
     }
 
-    // readOnly: mantiene abierta la sesión de Hibernate al mapear a DTO, porque
-    // species/alternatives son lazy y open-in-view está desactivado.
+    // Con readOnly mantengo abierta la sesión al mapear a DTO: species y alternatives son lazy y open-in-view está apagado.
     @Transactional(readOnly = true)
     public List<DetectionDto> getPublicDetections() {
         return toDtos(detectionRepository.findByVisibilityOrderByRecordedAtDesc(Visibility.PUBLIC));
@@ -63,10 +62,7 @@ public class DetectionService {
         return toDtos(detectionRepository.findVisibleTo(Visibility.PUBLIC, requesterId));
     }
 
-    // Una detección PRIVATE solo revela sus URLs (audio, foto del observador)
-    // a su dueño; para cualquier otro solicitante se comporta como si no
-    // existiera, en vez de confirmar con un 403 que el id sí corresponde a
-    // un registro real.
+    // Para quien no es el dueño, una detección privada no existe: no confirmo con un 403 que el id es real.
     @Transactional(readOnly = true)
     public DetectionDto getByIdForRequester(Long id, UUID requesterId) {
         Detection detection = detectionRepository.findById(id)
@@ -106,9 +102,7 @@ public class DetectionService {
         return toDto(detectionRepository.save(detection));
     }
 
-    // Solo el dueño puede adjuntar su propia foto de observación a una
-    // detección ya existente; sube directo a Storage desde el frontend
-    // (mismo patrón que avatars), esto solo persiste el path.
+    // Solo el dueño adjunta su foto: el frontend la sube a Storage y aquí solo guardo el path.
     @Transactional
     public DetectionDto setObserverPhoto(Long id, UUID requesterId, String observerPhotoStoragePath) {
         Detection detection = detectionRepository.findById(id)
@@ -121,9 +115,7 @@ public class DetectionService {
         return toDto(detection);
     }
 
-    // Borra el registro sin importar su visibilidad: al desaparecer de
-    // detections, deja de aparecer tanto en el mapa público como en el
-    // historial privado del dueño, que son la misma tabla.
+    // Borro el registro sin importar su visibilidad: así sale del mapa y del historial a la vez.
     public void deleteDetection(Long id) {
         if (!detectionRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ApiErrorMessages.DETECTION_NOT_FOUND);
@@ -131,10 +123,8 @@ public class DetectionService {
         detectionRepository.deleteById(id);
     }
 
-    // Los paths llegan del cliente y luego se firman con la service_role key,
-    // que ignora las políticas RLS de Storage: sin esta comprobación un
-    // usuario podría guardar el path de la carpeta de otro y recibir una URL
-    // firmada de su grabación/foto privada.
+    // Los paths vienen del cliente y los firmo con la service_role key, que ignora RLS: sin esta revisión
+    // alguien podría pedir una URL firmada de la carpeta de otro.
     static boolean isOwnedStoragePath(UUID ownerId, String storagePath) {
         return storagePath.startsWith(ownerId + "/") && !storagePath.contains("..");
     }
@@ -169,10 +159,7 @@ public class DetectionService {
         return DetectionDto.fromEntity(detection, signedAudioUrl, signedObserverPhotoUrl, observerName);
     }
 
-    // A diferencia del audio (la función central de la detección, que debe
-    // fallar ruidosamente si no se puede servir), una foto de observador que
-    // no se pueda firmar se degrada a null: nunca debe tumbar la carga de
-    // toda la detección por un problema en un campo secundario.
+    // Si no puedo firmar la foto del observador la dejo en null: un campo secundario no debe tumbar la detección.
     private String resolveObserverPhotoUrl(Detection detection) {
         if (detection.getObserverPhotoStoragePath() == null) return null;
         try {

@@ -5,11 +5,7 @@ import java.util.Set;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/**
- * Binding tipado de ai.*, agrupado en un record (engine/executor/catalog) en vez de
- * tres clases. Igual que {@link CorsProperties}: spring-boot-configuration-processor
- * necesita un binding tipado para generar los metadatos del IDE.
- */
+/** Agrupo ai.* en un record tipado para que spring-boot-configuration-processor genere sus metadatos. */
 @ConfigurationProperties(prefix = "ai")
 public record AiProperties(Engine engine, Executor executor, Catalog catalog, Photo photo, Wake wake) {
 

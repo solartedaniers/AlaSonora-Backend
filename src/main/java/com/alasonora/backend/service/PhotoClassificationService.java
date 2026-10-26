@@ -21,11 +21,7 @@ import com.alasonora.backend.async.AiTaskRunner;
 import com.alasonora.backend.dto.PhotoClassificationCandidateDto;
 import com.alasonora.backend.dto.PhotoClassificationResultDto;
 
-/**
- * Orquesta una clasificación de foto con la forma de {@link DetectionClassificationService}
- * (bulkhead, llamada al puerto, resultado ordenado), pero sin tocar el catálogo ni
- * Detection: solo muestra el resultado de la IA, no guarda ninguna detección.
- */
+/** Clasifico la foto igual que DetectionClassificationService, pero sin tocar el catálogo ni guardar detecciones. */
 @Service
 public class PhotoClassificationService {
 

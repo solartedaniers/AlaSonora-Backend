@@ -22,11 +22,7 @@ import com.alasonora.backend.config.AiProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Adaptador que habla por HTTP con el microservicio BirdNET (Python/FastAPI).
- * Es la única clase que conoce su formato (multipart, cabecera X-Internal-Api-Key,
- * JSON snake_case); el resto depende solo de {@link BirdSoundClassifier}.
- */
+/** Único adaptador que conoce el formato HTTP del motor BirdNET (multipart, X-Internal-Api-Key, snake_case). */
 @Component
 public class BirdNetHttpClassifier implements BirdSoundClassifier {
 

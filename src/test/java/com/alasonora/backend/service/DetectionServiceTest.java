@@ -16,7 +16,7 @@ class DetectionServiceTest {
     void isOwnedStoragePath() {
         assertTrue(DetectionService.isOwnedStoragePath(OWNER, OWNER + "/1759000000000.wav"));
         assertFalse(DetectionService.isOwnedStoragePath(OWNER, OTHER + "/1759000000000.wav"));
-        // prefijo de otro UUID que empieza igual, sin la barra de carpeta
+        // Un UUID que empieza igual pero sin la barra de carpeta no es del dueño.
         assertFalse(DetectionService.isOwnedStoragePath(OWNER, OWNER + "x/a.wav"));
         assertFalse(DetectionService.isOwnedStoragePath(OWNER, OWNER + "/../" + OTHER + "/a.wav"));
         assertFalse(DetectionService.isOwnedStoragePath(OWNER, "https://example.com/" + OWNER + "/a.wav"));

@@ -13,13 +13,7 @@ import org.springframework.web.client.RestClientException;
 import com.alasonora.backend.config.SpeciesTranslationProperties;
 import tools.jackson.databind.JsonNode;
 
-/**
- * Traduce nombres comunes al español consultando Wikidata en tiempo real por
- * el nombre científico (propiedad P225, "taxon name"). No hay diccionario
- * local: cualquier ave con entrada en Wikidata (prácticamente todas las
- * especies catalogadas) se resuelve sin tocar código ni mantener una lista
- * propia de traducciones.
- */
+/** Traduzco al español consultando Wikidata en vivo por el nombre científico (P225), sin diccionario local. */
 @Component
 public class WikidataSpeciesCommonNameTranslator implements SpeciesCommonNameTranslator {
 
@@ -44,12 +38,7 @@ public class WikidataSpeciesCommonNameTranslator implements SpeciesCommonNameTra
     @Override
     public Optional<String> translateToSpanish(String scientificName) {
         try {
-            // La query SPARQL trae { }, ?, comillas: con el builder por
-            // lambda (queryParam + build() sin argumentos), UriBuilder trata
-            // esas llaves como variables de plantilla sin resolver y lanza
-            // IllegalArgumentException. Pasando el valor como variable
-            // posicional ({query}) en vez de texto ya insertado en el
-            // template, Spring lo codifica como un valor literal.
+            // Paso la query SPARQL como variable {query}: si la inserto en la plantilla, sus llaves rompen el UriBuilder.
             JsonNode response = restClient.get()
                 .uri("?query={query}&format=json", sparqlQuery(scientificName))
                 .retrieve()
@@ -65,9 +54,7 @@ public class WikidataSpeciesCommonNameTranslator implements SpeciesCommonNameTra
 
     private String sparqlQuery(String scientificName) {
         String escaped = scientificName.replace("\"", "\\\"");
-        // P1843 ("taxon common name") es la fuente principal; acepto variantes regionales (es-*),
-        // prefiriendo "es". Como respaldo uso la etiqueta en español solo si no es el propio nombre
-        // científico: Wikidata suele etiquetar los taxones con él cuando no hay nombre común curado.
+        // Uso P1843 (prefiero "es" sobre es-*) y, de respaldo, la etiqueta en español si no es el propio nombre científico.
         return """
             SELECT ?common ?commonLang ?label WHERE {
               ?taxon wdt:P225 "%s".

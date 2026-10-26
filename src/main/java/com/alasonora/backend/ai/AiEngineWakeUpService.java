@@ -12,10 +12,8 @@ import org.springframework.stereotype.Service;
 import com.alasonora.backend.config.AiProperties;
 
 /**
- * Despierta el motor en el pool de IA, nunca en un hilo de Tomcat: un solo despertar a la vez, que
- * repite GET /health hasta que responde o se agota ai.wake.max-duration-ms. Solo lo dispara un
- * usuario con sesión al pedir el estado; no hay keep-alive ni consultas programadas. Render no deja
- * que otro servicio suyo despierte al motor (responde 429); lo despierta el navegador del usuario.
+ * Despierto el motor en el pool de IA, uno a la vez, repitiendo GET /health hasta que responde o se agota el tiempo.
+ * Solo lo dispara un usuario con sesión al pedir el estado, sin keep-alive; Render responde 429 si lo intenta otro servicio suyo.
  */
 @Service
 public class AiEngineWakeUpService {

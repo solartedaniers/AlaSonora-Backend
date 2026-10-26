@@ -17,9 +17,9 @@ class UserStatsServiceTest {
         assertEquals(1, UserStatsService.currentStreakDays(Set.of(TODAY), TODAY));
         assertEquals(3, UserStatsService.currentStreakDays(
             Set.of(TODAY, TODAY.minusDays(1), TODAY.minusDays(2), TODAY.minusDays(4)), TODAY));
-        // sin grabación hoy, la racha que llega hasta ayer sigue contando
+        // Sin grabación hoy, la racha que llega hasta ayer sigue contando.
         assertEquals(2, UserStatsService.currentStreakDays(Set.of(TODAY.minusDays(1), TODAY.minusDays(2)), TODAY));
-        // un día completo sin grabar la rompe
+        // Un día completo sin grabar la rompe.
         assertEquals(0, UserStatsService.currentStreakDays(Set.of(TODAY.minusDays(2), TODAY.minusDays(3)), TODAY));
     }
 }

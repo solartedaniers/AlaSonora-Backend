@@ -30,9 +30,8 @@ import com.alasonora.backend.dto.GeoLocationDto;
 import com.alasonora.backend.dto.SpeciesDto;
 
 /**
- * Orquesta una clasificación: corre en el bulkhead de IA vía {@link AiTaskRunner} (nunca en un
- * hilo de Tomcat), llama al puerto {@link BirdSoundClassifier} y deja crecer el catálogo
- * con {@link SpeciesService} para las especies de BirdNET que aún no están en la base.
+ * Orquesto la clasificación en el pool de IA (AiTaskRunner), llamo a BirdSoundClassifier
+ * y registro con SpeciesService las especies que aún no están en la base.
  */
 @Service
 public class DetectionClassificationService {
