@@ -15,8 +15,8 @@ import org.springframework.web.client.RestClientResponseException;
 import com.alasonora.backend.config.AiProperties;
 
 /**
- * Consulta el /health del motor. Solo la usa {@link AiEngineWakeUpService}, en segundo plano:
- * su timeout largo (ai.wake.attempt-timeout-ms) deja que Render retenga la petición mientras arranca.
+ * Consulto el /health del motor desde AiEngineWakeUpService, en segundo plano: el timeout largo
+ * deja que Render retenga la petición mientras arranca.
  */
 @Component
 public class AiEngineHealthClient {
@@ -44,9 +44,8 @@ public class AiEngineHealthClient {
     }
 
     /**
-     * Listo solo si responde el JSON del motor ({"status":"ok"}): mientras despierta, Render puede
-     * devolver su propia página HTML con un 200, y eso no significa que el motor ya arrancó.
-     * El 429 de Render no lo registro aquí: lo cuenta una sola vez {@link AiEngineWakeUpService}.
+     * Lo doy por listo solo con el JSON del motor: mientras despierta, Render puede responder su página HTML con 200.
+     * El 429 de Render lo cuenta una sola vez AiEngineWakeUpService.
      */
     public Health check() {
         long start = System.nanoTime();

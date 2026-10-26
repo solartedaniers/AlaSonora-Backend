@@ -12,9 +12,13 @@ public final class ApiErrorMessages {
     public static final String SPECIES_NOT_FOUND = "Species not found: ";
     public static final String ONLY_PUBLIC_VISIBILITY = "Only visibility=public is supported here";
     public static final String STORAGE_PATH_OUTSIDE_OWN_FOLDER = "Storage path must be inside the requester's own folder";
+    public static final String AI_ENGINE_BUSY = "The AI engine is busy; try again in a moment";
     public static final String BIOACOUSTIC_ENGINE_UNAVAILABLE = "The bioacoustic engine is unavailable";
     public static final String PHOTO_ENGINE_UNAVAILABLE = "The photo-classification engine is unavailable";
     public static final String PHOTO_UNREADABLE = "Could not read the uploaded photo";
+    public static final String PHOTO_UNAVAILABLE = "Photo identification is not available in this deployment";
+    public static final String AUDIO_TOO_NOISY = "The recording has too much background noise";
+    public static final String NO_BIRD_SIGNAL = "No bird sound was detected in the recording";
     // El frontend aún reconoce estos textos como respaldo si el backend no envía errorCode.
     public static final String NO_SPECIES_IN_RECORDING = "No bird species were identified in this recording";
     public static final String NO_SPECIES_IN_PHOTO = "No bird species were identified in this photo";

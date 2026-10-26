@@ -6,9 +6,7 @@ import com.alasonora.backend.exception.CodedResponseStatusException;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,25 +14,23 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.alasonora.backend.ai.BirdPhotoClassifier;
 import com.alasonora.backend.ai.NoBirdInPhotoException;
+import com.alasonora.backend.ai.PhotoClassificationDisabledException;
 import com.alasonora.backend.ai.PhotoClassificationException;
 import com.alasonora.backend.ai.RawPhotoClassificationCandidate;
+import com.alasonora.backend.async.AiTaskRunner;
 import com.alasonora.backend.dto.PhotoClassificationCandidateDto;
 import com.alasonora.backend.dto.PhotoClassificationResultDto;
 
-/**
- * Orquesta una clasificación de foto con la forma de {@link DetectionClassificationService}
- * (bulkhead, llamada al puerto, resultado ordenado), pero sin tocar el catálogo ni
- * Detection: solo muestra el resultado de la IA, no guarda ninguna detección.
- */
+/** Clasifico la foto igual que DetectionClassificationService, pero sin tocar el catálogo ni guardar detecciones. */
 @Service
 public class PhotoClassificationService {
 
     private final BirdPhotoClassifier classifier;
-    private final Executor aiTaskExecutor;
+    private final AiTaskRunner aiTaskRunner;
 
-    public PhotoClassificationService(BirdPhotoClassifier classifier, @Qualifier("aiTaskExecutor") Executor aiTaskExecutor) {
+    public PhotoClassificationService(BirdPhotoClassifier classifier, AiTaskRunner aiTaskRunner) {
         this.classifier = classifier;
-        this.aiTaskExecutor = aiTaskExecutor;
+        this.aiTaskRunner = aiTaskRunner;
     }
 
     public CompletableFuture<PhotoClassificationResultDto> classify(MultipartFile photo) {
@@ -44,7 +40,7 @@ public class PhotoClassificationService {
         } catch (Exception ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ApiErrorMessages.PHOTO_UNREADABLE, ex);
         }
-        return CompletableFuture.supplyAsync(() -> runClassification(photoBytes), aiTaskExecutor);
+        return aiTaskRunner.supply(() -> runClassification(photoBytes));
     }
 
     private PhotoClassificationResultDto runClassification(byte[] photoBytes) {
@@ -52,7 +48,9 @@ public class PhotoClassificationService {
         try {
             raw = classifier.classify(photoBytes);
         } catch (NoBirdInPhotoException ex) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), ex);
+            throw new CodedResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), ApiErrorCode.NO_BIRD_IN_PHOTO);
+        } catch (PhotoClassificationDisabledException ex) {
+            throw new CodedResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, ApiErrorMessages.PHOTO_UNAVAILABLE, ApiErrorCode.PHOTO_UNAVAILABLE);
         } catch (PhotoClassificationException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, ApiErrorMessages.PHOTO_ENGINE_UNAVAILABLE, ex);
         }

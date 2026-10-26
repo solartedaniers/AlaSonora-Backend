@@ -53,10 +53,8 @@ public class SpeciesService {
     }
 
     /**
-     * Crecimiento del catálogo: reutilizo la especie por nombre científico o registro
-     * una nueva con lo que reportó la IA. Los campos que el motor no da (estado UICN,
-     * taxonomía) quedan con valores honestos de relleno, no adivinados, para que un
-     * curador los complete sin que parezcan datos oficiales mientras tanto.
+     * Reutilizo la especie por nombre científico o registro una nueva; lo que el motor no da (UICN, taxonomía)
+     * queda con valores de relleno honestos para que un curador lo complete.
      */
     @Transactional
     public Species findOrCreateByScientificName(String scientificName, String commonNameEn) {
@@ -72,9 +70,8 @@ public class SpeciesService {
     }
 
     /**
-     * Reintento en segundo plano de la traducción para especies que quedaron sin nombre en español
-     * (Wikidata no respondió a tiempo). Solo ocurre cuando alguien vuelve a usar la especie y no
-     * retrasa la clasificación en curso: si encuentra el nombre, actualiza la fila para la próxima vez.
+     * Si la especie quedó sin nombre en español, reintento la traducción en segundo plano cuando se vuelve a usar,
+     * sin retrasar la clasificación en curso.
      */
     private void backfillSpanishName(Species species) {
         Long id = species.getId();
@@ -94,11 +91,7 @@ public class SpeciesService {
         species.setCommonNameEn(commonNameEn);
         species.setIucnStatus(IucnStatus.NE);
 
-        // Las tres llamadas externas (Wikidata, Wikimedia, Xeno-canto) son
-        // independientes entre sí, así que se lanzan a la vez en vez de una
-        // tras otra: el tiempo total queda acotado por la más lenta de las
-        // tres, no por la suma (medido: de ~1.1-3.1s secuencial a ~0.6-1.7s
-        // en paralelo con las mismas especies, ver informe).
+        // Lanzo las tres consultas externas a la vez: el tiempo total queda en la más lenta y no en la suma.
         CompletableFuture<Optional<String>> commonNameFuture =
             CompletableFuture.supplyAsync(() -> nameTranslator.translateToSpanish(scientificName));
         CompletableFuture<Optional<String>> imageFuture =
@@ -106,9 +99,8 @@ public class SpeciesService {
         CompletableFuture<List<String>> vocalizationsFuture =
             CompletableFuture.supplyAsync(() -> vocalizationReferenceResolver.resolveTypicalVocalizations(scientificName));
 
-        // Traducción dinámica vía Wikidata (sin diccionario local). Sin nombre en español lo dejo
-        // vacío, nunca el inglés: el frontend muestra el nombre científico y el nombre se completa
-        // después (backfillSpanishName). La columna es NOT NULL, por eso vacío y no null.
+        // Traduzco con Wikidata; sin nombre en español lo dejo vacío (la columna es NOT NULL), nunca en inglés,
+        // y backfillSpanishName lo completa después.
         species.setCommonName(commonNameFuture.join().orElse(""));
         // Foto de referencia real vía Wikimedia Commons; sin foto queda null y el frontend muestra su
         // ilustración con el aviso. Guardar una ruta de placeholder del frontend la rompía al cambiar.

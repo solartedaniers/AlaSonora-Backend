@@ -15,24 +15,15 @@ import org.springframework.web.client.RestClientException;
 import com.alasonora.backend.config.XenoCantoProperties;
 import tools.jackson.databind.JsonNode;
 
-/**
- * Deriva los tipos de vocalización típicos de una especie a partir de las
- * grabaciones catalogadas en Xeno-canto (song, call, duet, etc.). Es
- * metadata de referencia de la especie -- nunca un análisis de la grabación
- * puntual del usuario -- por eso se resuelve una sola vez, al auto-registrar
- * la especie, igual que {@link WikimediaCommonsSpeciesImageResolver}.
- */
+/** Saco los tipos de vocalización de las grabaciones de Xeno-canto; lo resuelvo una sola vez al registrar la especie. */
 @Component
 public class XenoCantoVocalizationReferenceResolver implements SpeciesVocalizationReferenceResolver {
 
     private static final String API_ENDPOINT = "https://xeno-canto.org/api/3/recordings";
     private static final int MAX_TYPES = 6;
-    // Valores que Xeno-canto usa como marcador de "no clasificado", no como
-    // un tipo de vocalización real.
+    // Marcadores de "sin clasificar" de Xeno-canto, no tipos reales.
     private static final Set<String> NON_VOCALIZATION_TYPES = Set.of("", "uncertain");
-    // Un type que solo aparece una vez suele ser una anotación de texto
-    // libre del grabador (typos, notas en español, etc.); que se repita
-    // confirma que es un tipo real y no ruido.
+    // Un tipo que aparece una sola vez suele ser texto libre del grabador: solo cuento los que se repiten.
     private static final int MIN_OCCURRENCES = 2;
 
     private final RestClient restClient;
@@ -62,9 +53,7 @@ public class XenoCantoVocalizationReferenceResolver implements SpeciesVocalizati
                 .body(JsonNode.class);
             return extractFrequentTypes(response);
         } catch (RestClientException ex) {
-            // Falla de red o especie sin grabaciones en Xeno-canto: se
-            // degrada en silencio, la sección de referencia simplemente no
-            // se muestra.
+            // Si falla o no hay grabaciones, no muestro la sección de referencia.
             return List.of();
         }
     }

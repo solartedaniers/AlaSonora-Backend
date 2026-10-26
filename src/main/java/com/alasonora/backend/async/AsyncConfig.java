@@ -10,11 +10,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import com.alasonora.backend.config.AiProperties;
 
-/**
- * Bulkhead: la clasificación con IA (descargar la grabación y llamar al motor Python)
- * corre en su propio pool acotado, aislado de los hilos HTTP de Tomcat. Así un motor
- * lento o colgado nunca deja sin hilos al resto de la aplicación.
- */
+/** Corro la IA en su propio pool acotado para que un motor lento nunca deje sin hilos a Tomcat. */
 @Configuration
 @EnableAsync
 public class AsyncConfig {
@@ -34,9 +30,8 @@ public class AsyncConfig {
         executor.setMaxPoolSize(config.maxPoolSize());
         executor.setQueueCapacity(config.queueCapacity());
         executor.setThreadNamePrefix("ai-task-");
-        // Contrapresión: con el pool y su cola llenos, ejecuto la tarea en el hilo que
-        // la pidió en vez de rechazarla o hacer crecer el pool sin límite.
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        // Con el pool y su cola llenos rechazo la tarea: nunca corre en el hilo de Tomcat (AiTaskRunner responde 503).
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
         executor.initialize();
         return executor;
     }

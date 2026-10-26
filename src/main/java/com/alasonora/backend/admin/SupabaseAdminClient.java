@@ -12,18 +12,11 @@ import org.springframework.web.client.RestClientException;
 
 import com.alasonora.backend.config.SupabaseProperties;
 
-/**
- * Adapter que habla con la Supabase Auth Admin API: única clase que conoce su
- * formato (headers apikey/Authorization con la service_role key, payloads
- * snake_case). Se usa solo para lo que debe ocurrir realmente en Supabase
- * Auth (alta de usuarios y baneo de sesión); todo lo demás del panel de
- * administración se resuelve contra la tabla profiles de este backend.
- */
+/** Único adaptador que conoce la Auth Admin API de Supabase; lo uso solo para crear y banear cuentas. */
 @Component
 public class SupabaseAdminClient {
 
-    // Supabase no tiene un "baneo permanente" explícito; una duración muy
-    // larga (100 años) es el patrón que documentan para lograrlo.
+    // Supabase no tiene baneo permanente: uso 100 años, que es lo que documentan.
     private static final String PERMANENT_BAN_DURATION = "876000h";
     private static final String NO_BAN_DURATION = "none";
 

@@ -10,6 +10,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.AfterEach;
@@ -54,7 +56,9 @@ class AiEngineWakeUpServiceTest {
     @AfterEach
     void stopStubEngine() {
         server.stop(0);
-        attached.forEach(Runnable::run);
+        for (Runnable task : attached) {
+            task.run();
+        }
     }
 
     @Test
@@ -116,6 +120,21 @@ class AiEngineWakeUpServiceTest {
         assertEquals(0, warnings);
     }
 
+    @Test
+    void skipsTheWakeUpWithoutThrowingWhenTheAiPoolIsFull() {
+        String base = "http://127.0.0.1:" + server.getAddress().getPort();
+        AiProperties.Engine engine = new AiProperties.Engine(base, "key", 2000, 0.1, 3, 1000, 1, 10, 1000);
+        AiProperties properties = new AiProperties(engine, null, null, null, new AiProperties.Wake(1000, 60_000, 10, 60_000));
+        Executor full = task -> {
+            throw new RejectedExecutionException("full");
+        };
+        AiEngineWakeUpService service = new AiEngineWakeUpService(new AiEngineHealthClient(properties), new AiEngineReadiness(Clock.systemUTC(), properties), full, properties);
+
+        assertFalse(service.wakeUp());
+        assertFalse(service.wakeUp(), "Still full: it never runs on the caller thread");
+        assertEquals(0, healthCalls.get());
+    }
+
     private ListAppender<ILoggingEvent> captureLogs(Class<?>... sources) {
         ListAppender<ILoggingEvent> logs = new ListAppender<>();
         logs.start();
@@ -132,6 +151,14 @@ class AiEngineWakeUpServiceTest {
         AiProperties.Engine engine = new AiProperties.Engine(base, "key", 2000, 0.1, 3, 1000, 1, 10, 1000);
         AiProperties properties = new AiProperties(engine, null, null, null, new AiProperties.Wake(1000, maxDurationMs, 10, 60_000));
         readiness = new AiEngineReadiness(Clock.systemUTC(), properties);
-        return new AiEngineWakeUpService(new AiEngineHealthClient(properties), readiness, queued::add, properties);
+        return new AiEngineWakeUpService(new AiEngineHealthClient(properties), readiness, new QueueingExecutor(), properties);
+    }
+
+    // Guardo la tarea en la cola en vez de correrla.
+    private final class QueueingExecutor implements Executor {
+        @Override
+        public void execute(Runnable command) {
+            queued.add(command);
+        }
     }
 }

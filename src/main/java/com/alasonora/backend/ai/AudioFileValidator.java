@@ -6,10 +6,7 @@ import org.springframework.stereotype.Component;
 
 import com.alasonora.backend.config.AudioUploadProperties;
 
-/**
- * Revisa el audio antes de mandarlo al motor: tamaño máximo y formato real por su firma (WAV, FLAC
- * o MP3), no por el nombre ni el tipo que declaró el navegador.
- */
+/** Reviso el tamaño y el formato real del audio por su firma (WAV, FLAC o MP3) antes de mandarlo al motor. */
 @Component
 public class AudioFileValidator {
 

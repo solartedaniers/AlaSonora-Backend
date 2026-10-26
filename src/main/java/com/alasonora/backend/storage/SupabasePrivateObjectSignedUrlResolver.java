@@ -11,13 +11,7 @@ import org.springframework.web.client.RestClientException;
 
 import com.alasonora.backend.config.SupabaseProperties;
 
-/**
- * Firma URLs de objetos privados (grabaciones, fotos del observador) contra
- * la Supabase Storage Admin API, con la misma service_role key que
- * {@link com.alasonora.backend.admin.SupabaseAdminClient} usa para la Auth
- * Admin API. Un único cliente HTTP reutilizable por bucket, en vez de una
- * clase por cada tipo de objeto privado que el backend necesite servir.
- */
+/** Firmo URLs de objetos privados con la Storage Admin API, con la misma service_role key que SupabaseAdminClient. */
 @Component
 public class SupabasePrivateObjectSignedUrlResolver implements PrivateObjectSignedUrlResolver {
 
@@ -41,11 +35,7 @@ public class SupabasePrivateObjectSignedUrlResolver implements PrivateObjectSign
     @Override
     public String resolveSignedUrl(String bucket, String storagePath, int ttlSeconds) {
         try {
-            // storagePath viene de nuestro propio patrón de subida
-            // ("{ownerId}/{...}"), nunca de texto libre del usuario, así que
-            // concatenarlo es seguro: no hay caracteres que requieran
-            // escapado y una plantilla "{bucket}/{path}" de RestClient
-            // codificaría la barra interna del path como %2F.
+            // Concateno storagePath porque sale de mi propio patrón de subida; la plantilla de RestClient codificaría la barra como %2F.
             SignedUrlResponse response = restClient.post()
                 .uri("/object/sign/" + bucket + "/" + storagePath)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -57,10 +47,7 @@ public class SupabasePrivateObjectSignedUrlResolver implements PrivateObjectSign
             }
             return storageBaseUrl + response.signedURL();
         } catch (RestClientException | IllegalArgumentException ex) {
-            // IllegalArgumentException también se captura aquí: la lanza el
-            // propio cliente HTTP si supabase.url no está configurada (URI no
-            // absoluta), antes de que exista una request que RestClientException
-            // pudiera envolver.
+            // También atrapo IllegalArgumentException: la lanza el cliente si supabase.url no es una URI absoluta.
             throw new SignedUrlException("Could not sign the URL for " + bucket + "/" + storagePath, ex);
         }
     }

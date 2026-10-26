@@ -24,9 +24,8 @@ import com.alasonora.backend.repository.DetectionRepository;
 import com.alasonora.backend.repository.ProfileRepository;
 
 /**
- * Campana de avisos sin tabla propia: un aviso es una detección PUBLIC de otra persona, y "sin leer"
- * significa creada después de profiles.notifications_seen_at. Guardar una detección no escribe nada
- * por cada usuario, y el estado de leído es una sola fecha por cuenta (sirve en cualquier dispositivo).
+ * Campana sin tabla propia: un aviso es una detección pública de otra persona, sin leer si es posterior
+ * a profiles.notifications_seen_at, una sola fecha por cuenta que sirve en cualquier dispositivo.
  */
 @Service
 public class NotificationService {

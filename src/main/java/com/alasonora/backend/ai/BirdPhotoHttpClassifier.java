@@ -25,6 +25,7 @@ import tools.jackson.databind.ObjectMapper;
 public class BirdPhotoHttpClassifier implements BirdPhotoClassifier {
 
     private static final Logger log = LoggerFactory.getLogger(BirdPhotoHttpClassifier.class);
+    private static final String PHOTO_DISABLED = "PHOTO_DISABLED";
     private final RestClient engineClient;
     private final AiProperties.Engine engineProperties;
     private final AiProperties.Photo photoProperties;
@@ -69,21 +70,13 @@ public class BirdPhotoHttpClassifier implements BirdPhotoClassifier {
                 .toList();
         } catch (RestClientResponseException ex) {
             AiEngineCallLog.warnFailure(log, "photo classification", engineProperties.host(), ex, AiEngineCallLog.elapsedMs(start));
-            if (ex.getStatusCode() == HttpStatusCode.valueOf(422)) {
-                throw new NoBirdInPhotoException(extractDetailMessage(ex));
-            }
+            AiEngineError error = AiEngineError.from(ex, objectMapper);
+            if (error.is(PHOTO_DISABLED)) throw new PhotoClassificationDisabledException();
+            if (ex.getStatusCode() == HttpStatusCode.valueOf(422)) throw new NoBirdInPhotoException(error.detail());
             throw new PhotoClassificationException("Photo classification engine call failed", ex);
         } catch (RestClientException ex) {
             AiEngineCallLog.warnFailure(log, "photo classification", engineProperties.host(), ex, AiEngineCallLog.elapsedMs(start));
             throw new PhotoClassificationException("Photo classification engine call failed", ex);
-        }
-    }
-
-    private String extractDetailMessage(RestClientResponseException ex) {
-        try {
-            return objectMapper.readTree(ex.getResponseBodyAsByteArray()).path("detail").asString(ex.getMessage());
-        } catch (Exception parseError) {
-            return ex.getMessage();
         }
     }
 

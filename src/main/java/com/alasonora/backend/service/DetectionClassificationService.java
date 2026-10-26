@@ -6,11 +6,9 @@ import com.alasonora.backend.exception.CodedResponseStatusException;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -23,6 +21,7 @@ import com.alasonora.backend.ai.AudioQualityException;
 import com.alasonora.backend.ai.BirdSoundClassifier;
 import com.alasonora.backend.ai.ClassificationRequest;
 import com.alasonora.backend.ai.RawClassificationCandidate;
+import com.alasonora.backend.async.AiTaskRunner;
 import com.alasonora.backend.config.AiProperties;
 import com.alasonora.backend.dto.ClassificationResultDto;
 import com.alasonora.backend.dto.ClassifyDetectionRequest;
@@ -31,9 +30,8 @@ import com.alasonora.backend.dto.GeoLocationDto;
 import com.alasonora.backend.dto.SpeciesDto;
 
 /**
- * Orquesta una clasificación: corre en el bulkhead {@code aiTaskExecutor} (nunca en un
- * hilo de Tomcat), llama al puerto {@link BirdSoundClassifier} y deja crecer el catálogo
- * con {@link SpeciesService} para las especies de BirdNET que aún no están en la base.
+ * Orquesto la clasificación en el pool de IA (AiTaskRunner), llamo a BirdSoundClassifier
+ * y registro con SpeciesService las especies que aún no están en la base.
  */
 @Service
 public class DetectionClassificationService {
@@ -42,26 +40,26 @@ public class DetectionClassificationService {
 
     private final BirdSoundClassifier classifier;
     private final SpeciesService speciesService;
-    private final Executor aiTaskExecutor;
+    private final AiTaskRunner aiTaskRunner;
     private final AiProperties.Catalog catalogProperties;
     private final AiEngineReadiness engineReadiness;
 
     public DetectionClassificationService(
         BirdSoundClassifier classifier,
         SpeciesService speciesService,
-        @Qualifier("aiTaskExecutor") Executor aiTaskExecutor,
+        AiTaskRunner aiTaskRunner,
         AiProperties aiProperties,
         AiEngineReadiness engineReadiness
     ) {
         this.classifier = classifier;
         this.speciesService = speciesService;
-        this.aiTaskExecutor = aiTaskExecutor;
+        this.aiTaskRunner = aiTaskRunner;
         this.catalogProperties = aiProperties.catalog();
         this.engineReadiness = engineReadiness;
     }
 
     public CompletableFuture<ClassificationResultDto> classify(ClassifyDetectionRequest request) {
-        return CompletableFuture.supplyAsync(() -> runClassification(request), aiTaskExecutor);
+        return aiTaskRunner.supply(() -> runClassification(request));
     }
 
     private ClassificationResultDto runClassification(ClassifyDetectionRequest request) {
@@ -75,7 +73,12 @@ public class DetectionClassificationService {
                 request.recordedAt()
             ));
         } catch (AudioQualityException ex) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), ex);
+            throw switch (ex.reason()) {
+                case TOO_NOISY -> new CodedResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, ApiErrorMessages.AUDIO_TOO_NOISY, ApiErrorCode.AUDIO_TOO_NOISY);
+                case NO_BIRD_SIGNAL -> new CodedResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, ApiErrorMessages.NO_BIRD_SIGNAL, ApiErrorCode.NO_BIRD_SIGNAL);
+                // Motor sin códigos: sigo respondiendo 422 con su detalle, con un código genérico para el frontend.
+                case UNKNOWN -> new CodedResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), ApiErrorCode.AUDIO_REJECTED);
+            };
         } catch (AudioFileRejectedException ex) {
             throw ex.reason() == AudioFileRejectedException.Reason.TOO_LARGE
                 ? new CodedResponseStatusException(HttpStatus.CONTENT_TOO_LARGE, ApiErrorMessages.AUDIO_TOO_LARGE, ApiErrorCode.AUDIO_TOO_LARGE)

@@ -7,11 +7,7 @@ import org.springframework.boot.web.error.ErrorAttributeOptions;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.WebRequest;
 
-/**
- * Mismo cuerpo de error de Spring de siempre (status, message…) más
- * `errorCode` cuando la causa lo tiene. Solo se agrega un campo: los clientes
- * que leen `message` siguen funcionando igual.
- */
+/** Dejo el cuerpo de error de Spring y le agrego errorCode cuando alguna causa lo trae. */
 @Component
 public class ApiErrorAttributes extends DefaultErrorAttributes {
 

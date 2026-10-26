@@ -77,9 +77,7 @@ public class DetectionController {
         return userStatsService.getStats(UUID.fromString(jwt.getSubject()), zone);
     }
 
-    // La URL de audio se firma en el momento, nunca se guarda fija: así una
-    // detección PRIVATE sigue siendo reproducible sin importar cuánto tiempo
-    // haya pasado desde que se subió.
+    // Firmo la URL del audio en cada lectura y nunca la guardo: así una detección privada sigue reproducible.
     @GetMapping("/{id}")
     public DetectionDto getById(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         return detectionService.getByIdForRequester(id, UUID.fromString(jwt.getSubject()));
@@ -94,9 +92,7 @@ public class DetectionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // El frontend ya subió la foto directo a Storage (mismo patrón que
-    // avatars); este endpoint solo persiste el path, y solo si el
-    // solicitante es dueño de la detección.
+    // El frontend ya subió la foto a Storage; aquí solo guardo el path si quien la pide es el dueño.
     @PutMapping("/{id}/observer-photo")
     public DetectionDto setObserverPhoto(
         @AuthenticationPrincipal Jwt jwt,
@@ -106,9 +102,7 @@ public class DetectionController {
         return detectionService.setObserverPhoto(id, UUID.fromString(jwt.getSubject()), request.observerPhotoStoragePath());
     }
 
-    // Devuelvo un CompletableFuture: Spring MVC libera el hilo de Tomcat y retoma
-    // al completarse, así la llamada al motor de IA (que puede tardar segundos)
-    // nunca ocupa el pool HTTP del contenedor.
+    // Devuelvo un CompletableFuture para liberar el hilo de Tomcat mientras responde el motor.
     @PostMapping("/classify")
     public CompletableFuture<ResponseEntity<ClassificationResultDto>> classify(
         @AuthenticationPrincipal Jwt jwt,

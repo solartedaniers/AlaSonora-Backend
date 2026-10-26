@@ -9,9 +9,8 @@ import com.alasonora.backend.ai.AiEngineWakeUpService;
 import com.alasonora.backend.dto.AiStatusDto;
 
 /**
- * Estado del motor de IA: el frontend lo consulta al iniciar sesión y en Grabar. Respondo al instante
- * con el último estado conocido y, si no está listo, disparo el despertar en segundo plano.
- * Requiere sesión, así nadie anónimo despierta el motor; nunca expone su URL ni su clave.
+ * Respondo al instante el último estado del motor y, si no está listo, lo despierto en segundo plano.
+ * Pido sesión para que nadie anónimo lo despierte, y nunca expongo su URL ni su clave.
  */
 @RestController
 @RequestMapping("/api/ai")

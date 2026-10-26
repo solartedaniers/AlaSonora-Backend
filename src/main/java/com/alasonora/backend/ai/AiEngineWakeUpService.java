@@ -1,6 +1,7 @@
 package com.alasonora.backend.ai;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
@@ -11,10 +12,8 @@ import org.springframework.stereotype.Service;
 import com.alasonora.backend.config.AiProperties;
 
 /**
- * Despierta el motor en el pool de IA, nunca en un hilo de Tomcat: un solo despertar a la vez, que
- * repite GET /health hasta que responde o se agota ai.wake.max-duration-ms. Solo lo dispara un
- * usuario con sesión al pedir el estado; no hay keep-alive ni consultas programadas. Render no deja
- * que otro servicio suyo despierte al motor (responde 429); lo despierta el navegador del usuario.
+ * Despierto el motor en el pool de IA, uno a la vez, repitiendo GET /health hasta que responde o se agota el tiempo.
+ * Solo lo dispara un usuario con sesión al pedir el estado, sin keep-alive; Render responde 429 si lo intenta otro servicio suyo.
  */
 @Service
 public class AiEngineWakeUpService {
@@ -39,12 +38,17 @@ public class AiEngineWakeUpService {
         this.wakeProperties = aiProperties.wake();
     }
 
-    /** Devuelve false si ya había un despertar en curso: en ese caso no lanzo otro. */
+    /** Devuelve false si ya había un despertar en curso o el pool de IA está lleno: en ese caso no lanzo otro. */
     public boolean wakeUp() {
         if (!inProgress.compareAndSet(false, true)) return false;
         try {
             aiTaskExecutor.execute(this::runWakeUp);
             return true;
+        } catch (RejectedExecutionException rejected) {
+            // Pool lleno: lo intento en la próxima consulta de estado, sin tomar el hilo de Tomcat.
+            inProgress.set(false);
+            log.warn("AI engine wake-up skipped: the AI pool and its queue are full");
+            return false;
         } catch (RuntimeException ex) {
             inProgress.set(false);
             throw ex;

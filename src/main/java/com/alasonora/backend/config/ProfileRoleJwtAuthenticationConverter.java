@@ -17,10 +17,8 @@ import com.alasonora.backend.entity.SystemRole;
 import com.alasonora.backend.repository.ProfileRepository;
 
 /**
- * El rol de administración vive en profiles.system_role (no en el JWT de
- * Supabase, que solo trae claims de auth.users), así que cada request
- * autenticado hace una lectura liviana por PK para resolver ROLE_ADMIN/ROLE_USER
- * y poder usar hasRole("ADMIN") de forma declarativa en SecurityConfig.
+ * El rol vive en profiles.system_role y no en el JWT, así que lo leo por PK en cada request
+ * para poder usar hasRole("ADMIN") en SecurityConfig.
  */
 @Component
 public class ProfileRoleJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
@@ -40,11 +38,8 @@ public class ProfileRoleJwtAuthenticationConverter implements Converter<Jwt, Abs
         return new JwtAuthenticationToken(jwt, authorities);
     }
 
-    // Un valor de system_role editado a mano en la base (p. ej. "admin" en
-    // minúscula en vez de "ADMIN") hace que Hibernate lance una excepción al
-    // hidratar la fila, no que findById devuelva Optional.empty(): sin este
-    // try/catch, ese typo tumbaba con 500 CUALQUIER request autenticado del
-    // usuario (no solo los de /api/admin/**), en vez de solo negarle el rol.
+    // Un system_role mal escrito a mano hace que Hibernate lance al leer la fila: lo atrapo para negar
+    // solo el rol y no tumbar con 500 todas las peticiones del usuario.
     private SystemRole resolveSystemRole(String userId) {
         try {
             return profileRepository.findById(UUID.fromString(userId))

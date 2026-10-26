@@ -47,9 +47,7 @@ public class Species {
     @Column(columnDefinition = "TEXT")
     private String behaviorNotes;
 
-    // Tipos de vocalización documentados en Xeno-canto para la especie
-    // (ej. "song, call, duet"), no un análisis de ninguna grabación puntual.
-    // Null/blank cuando la fuente externa no reportó nada usable.
+    // Tipos de vocalización que reporta Xeno-canto (p. ej. "song, call"); vacío si la fuente no dio nada usable.
     @Column(columnDefinition = "TEXT")
     private String typicalVocalizations;
 }
