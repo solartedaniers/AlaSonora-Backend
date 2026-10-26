@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -63,7 +64,10 @@ class AiEngineHealthClientTest {
         captureLogs();
         clientServing(503, "text/plain", "Service Unavailable " + API_KEY).check();
 
-        List<String> messages = logs.list.stream().map(event -> event.getFormattedMessage()).toList();
+        List<String> messages = new ArrayList<>();
+        for (ILoggingEvent event : logs.list) {
+            messages.add(event.getFormattedMessage());
+        }
         assertEquals(1, messages.size());
         assertTrue(messages.get(0).contains("host=127.0.0.1"), messages.get(0));
         assertTrue(messages.get(0).contains("status=503"), messages.get(0));

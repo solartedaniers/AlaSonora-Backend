@@ -105,10 +105,15 @@ class AiEngineWakeUpServiceTest {
         service.wakeUp();
         queued.get(1).run();
 
-        List<ILoggingEvent> asleep = logs.list.stream().filter(event -> event.getFormattedMessage().contains("woken by client traffic")).toList();
+        List<ILoggingEvent> asleep = new ArrayList<>();
+        int warnings = 0;
+        for (ILoggingEvent event : logs.list) {
+            if (event.getFormattedMessage().contains("woken by client traffic")) asleep.add(event);
+            if (event.getLevel() == Level.WARN) warnings++;
+        }
         assertEquals(1, asleep.size(), "Only the first cycle meets the sleeping engine");
         assertEquals(Level.INFO, asleep.get(0).getLevel());
-        assertTrue(logs.list.stream().noneMatch(event -> event.getLevel() == Level.WARN));
+        assertEquals(0, warnings);
     }
 
     private ListAppender<ILoggingEvent> captureLogs(Class<?>... sources) {

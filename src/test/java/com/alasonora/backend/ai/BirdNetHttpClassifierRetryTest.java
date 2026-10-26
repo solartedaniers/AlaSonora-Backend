@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -81,7 +82,10 @@ class BirdNetHttpClassifierRetryTest {
 
         assertThrows(AiEngineUnavailableException.class, () -> classifier().classify(request()));
 
-        List<String> messages = logs.list.stream().map(event -> event.getFormattedMessage()).toList();
+        List<String> messages = new ArrayList<>();
+        for (ILoggingEvent event : logs.list) {
+            messages.add(event.getFormattedMessage());
+        }
         assertEquals(2, messages.size());
         for (String message : messages) {
             assertTrue(message.contains("host=127.0.0.1") && message.contains("status=502"), message);
