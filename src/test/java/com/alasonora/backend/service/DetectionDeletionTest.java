@@ -95,12 +95,12 @@ class DetectionDeletionTest {
     }
 
     @Test
-    void anotherUserGetsForbiddenAndNothingIsDeleted() {
+    void anotherUserGetsNotFoundAsIfItDidNotExistAndNothingIsDeleted() {
         CodedResponseStatusException error = assertThrows(CodedResponseStatusException.class,
             () -> detectionService.deleteOwnDetection(detectionId, OTHER));
 
-        assertEquals(HttpStatus.FORBIDDEN, error.getStatusCode());
-        assertEquals(ApiErrorCode.DETECTION_NOT_OWNED, error.getErrorCode());
+        assertEquals(HttpStatus.NOT_FOUND, error.getStatusCode());
+        assertEquals(ApiErrorCode.DETECTION_NOT_FOUND, error.getErrorCode());
         assertEquals(1, detectionRepository.count());
         verifyNoInteractions(storage);
     }
@@ -126,14 +126,24 @@ class DetectionDeletionTest {
     }
 
     @Test
-    void theAdminDeletionWorksAsBefore() {
+    void theAdminDeletesTheDetectionWithItsAlternativesAndFiles() {
         detectionService.deleteDetection(detectionId);
 
         assertEquals(0, detectionRepository.count());
         assertEquals(0L, candidateCount());
-        verifyNoInteractions(storage);
+        verify(storage).remove(RECORDINGS, List.of(OWNER + "/1.wav"));
+        verify(storage).remove(PHOTOS, List.of(OWNER + "/1.jpg"));
         ResponseStatusException missing = assertThrows(ResponseStatusException.class, () -> detectionService.deleteDetection(detectionId));
         assertEquals(HttpStatus.NOT_FOUND, missing.getStatusCode());
+    }
+
+    @Test
+    void aStorageFailureDoesNotStopTheAdminDeletion() {
+        when(storage.remove(anyString(), anyList())).thenThrow(new IllegalStateException("storage down"));
+
+        detectionService.deleteDetection(detectionId);
+
+        assertEquals(0, detectionRepository.count());
     }
 
     private long candidateCount() {

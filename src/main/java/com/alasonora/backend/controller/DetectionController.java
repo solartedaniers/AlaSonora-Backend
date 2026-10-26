@@ -93,7 +93,7 @@ public class DetectionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // Solo el dueño borra: 403 si es de otro y 404 si no existe.
+    // Solo el dueño borra: si es de otro o no existe respondo 404.
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         detectionService.deleteOwnDetection(id, UUID.fromString(jwt.getSubject()));

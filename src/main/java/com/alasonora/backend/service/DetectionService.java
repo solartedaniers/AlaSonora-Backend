@@ -123,22 +123,24 @@ public class DetectionService {
 
     // Borro el registro sin importar su visibilidad: así sale del mapa y del historial a la vez.
     public void deleteDetection(Long id) {
-        if (!detectionRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, ApiErrorMessages.DETECTION_NOT_FOUND);
-        }
-        detectionRepository.deleteById(id);
+        Detection detection = detectionRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ApiErrorMessages.DETECTION_NOT_FOUND));
+        remove(detection);
+    }
+
+    // Si es de otro respondo igual que si no existiera: no confirmo que el id es real.
+    public void deleteOwnDetection(Long id, UUID requesterId) {
+        Detection detection = detectionRepository.findById(id)
+            .filter(found -> found.getOwnerId().equals(requesterId))
+            .orElseThrow(() -> new CodedResponseStatusException(HttpStatus.NOT_FOUND, ApiErrorMessages.DETECTION_NOT_FOUND, ApiErrorCode.DETECTION_NOT_FOUND));
+        remove(detection);
     }
 
     /**
-     * El dueño borra su detección con el mismo borrado en cascada que usa el admin (alternativas incluidas)
-     * y luego sus archivos. Sin @Transactional: el registro ya está confirmado antes de tocar Storage.
+     * Borrado que comparten el admin y el dueño: la cascada se lleva las alternativas y luego quito sus archivos.
+     * Sin @Transactional: el registro ya está confirmado antes de tocar Storage.
      */
-    public void deleteOwnDetection(Long id, UUID requesterId) {
-        Detection detection = detectionRepository.findById(id)
-            .orElseThrow(() -> new CodedResponseStatusException(HttpStatus.NOT_FOUND, ApiErrorMessages.DETECTION_NOT_FOUND, ApiErrorCode.DETECTION_NOT_FOUND));
-        if (!detection.getOwnerId().equals(requesterId)) {
-            throw new CodedResponseStatusException(HttpStatus.FORBIDDEN, ApiErrorMessages.DETECTION_NOT_OWNED, ApiErrorCode.DETECTION_NOT_OWNED);
-        }
+    private void remove(Detection detection) {
         detectionRepository.delete(detection);
         fileRemover.removeFilesOf(detection);
     }
