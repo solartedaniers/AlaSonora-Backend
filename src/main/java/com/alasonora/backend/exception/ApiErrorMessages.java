@@ -9,6 +9,7 @@ public final class ApiErrorMessages {
     public static final String AUDIO_TOO_LARGE = "The audio file exceeds the maximum allowed size";
     public static final String AUDIO_UNSUPPORTED = "Unsupported audio format; use WAV, FLAC or MP3";
     public static final String DETECTION_NOT_FOUND = "Detection not found";
+    public static final String DETECTION_NOT_OWNED = "Only the owner can delete this detection";
     public static final String SPECIES_NOT_FOUND = "Species not found: ";
     public static final String ONLY_PUBLIC_VISIBILITY = "Only visibility=public is supported here";
     public static final String STORAGE_PATH_OUTSIDE_OWN_FOLDER = "Storage path must be inside the requester's own folder";
