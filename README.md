@@ -18,6 +18,15 @@ También orquesto la clasificación: le paso cada audio al motor de IA y enrique
 nombre común en español (Wikidata), la foto de la especie (Wikimedia Commons) y las vocalizaciones de
 referencia (Xeno-canto). La API pública vive en https://alasonora-backend.onrender.com/api.
 
+## Identificación por foto: mejora futura, apagada a propósito
+
+La función principal de AlaSonora es identificar aves por su canto con BirdNET, y está activa. La
+identificación por foto la dejé como mejora futura y la apagué a propósito: es una decisión, no un
+error. El motor ya tiene el endpoint `/classify-photo`, pero en producción está desactivado con
+`PHOTO_CLASSIFICATION_ENABLED=false` en el motor y `photoIdentificationEnabled=false` en el frontend.
+Lo hice porque el servidor gratis de Render tiene 512 MB de RAM: el audio usa unos 360 MB y con fotos
+el proceso llegaría a unos 750 MB.
+
 ## Tecnologías
 
 | Pieza | Versión |
