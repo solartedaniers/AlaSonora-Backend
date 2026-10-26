@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.alasonora.backend.ai.BirdPhotoClassifier;
 import com.alasonora.backend.ai.NoBirdInPhotoException;
+import com.alasonora.backend.ai.PhotoClassificationDisabledException;
 import com.alasonora.backend.ai.PhotoClassificationException;
 import com.alasonora.backend.ai.RawPhotoClassificationCandidate;
 import com.alasonora.backend.async.AiTaskRunner;
@@ -51,7 +52,9 @@ public class PhotoClassificationService {
         try {
             raw = classifier.classify(photoBytes);
         } catch (NoBirdInPhotoException ex) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), ex);
+            throw new CodedResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), ApiErrorCode.NO_BIRD_IN_PHOTO);
+        } catch (PhotoClassificationDisabledException ex) {
+            throw new CodedResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, ApiErrorMessages.PHOTO_UNAVAILABLE, ApiErrorCode.PHOTO_UNAVAILABLE);
         } catch (PhotoClassificationException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, ApiErrorMessages.PHOTO_ENGINE_UNAVAILABLE, ex);
         }

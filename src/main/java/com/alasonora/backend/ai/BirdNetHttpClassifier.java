@@ -33,6 +33,10 @@ public class BirdNetHttpClassifier implements BirdSoundClassifier {
     private static final Logger log = LoggerFactory.getLogger(BirdNetHttpClassifier.class);
     // Respuestas del proxy de Render mientras el servicio arranca o se cae: vale la pena reintentar.
     private static final Set<Integer> TRANSIENT_STATUSES = Set.of(502, 503, 504);
+    private static final String TOO_NOISY = "TOO_NOISY";
+    private static final String NO_BIRD_SIGNAL = "NO_BIRD_SIGNAL";
+    private static final String AUDIO_TOO_LARGE = "AUDIO_TOO_LARGE";
+    private static final String AUDIO_UNSUPPORTED = "AUDIO_UNSUPPORTED";
 
     private final RestClient engineClient;
     private final RestClient audioFetchClient;
@@ -96,9 +100,10 @@ public class BirdNetHttpClassifier implements BirdSoundClassifier {
                 return analyze(parts);
             } catch (RestClientResponseException ex) {
                 warnFailure(ex, start);
-                if (ex.getStatusCode() == HttpStatusCode.valueOf(422)) {
-                    throw new AudioQualityException(extractDetailMessage(ex));
-                }
+                AiEngineError error = AiEngineError.from(ex, objectMapper);
+                if (error.is(AUDIO_TOO_LARGE)) throw new AudioFileRejectedException(AudioFileRejectedException.Reason.TOO_LARGE);
+                if (error.is(AUDIO_UNSUPPORTED)) throw new AudioFileRejectedException(AudioFileRejectedException.Reason.UNSUPPORTED_FORMAT);
+                if (ex.getStatusCode() == HttpStatusCode.valueOf(422)) throw new AudioQualityException(qualityReason(error), error.detail());
                 if (!TRANSIENT_STATUSES.contains(ex.getStatusCode().value())) {
                     throw new AudioClassificationException("Bioacoustic engine call failed", ex);
                 }
@@ -152,14 +157,10 @@ public class BirdNetHttpClassifier implements BirdSoundClassifier {
         }
     }
 
-    // El motor Python devuelve {"detail": "<mensaje en español>"} en un 422
-    // cuando el audio no pasa el control de calidad; se propaga tal cual.
-    private String extractDetailMessage(RestClientResponseException ex) {
-        try {
-            return objectMapper.readTree(ex.getResponseBodyAsByteArray()).path("detail").asString(ex.getMessage());
-        } catch (Exception parseError) {
-            return ex.getMessage();
-        }
+    private static AudioQualityException.Reason qualityReason(AiEngineError error) {
+        if (error.is(TOO_NOISY)) return AudioQualityException.Reason.TOO_NOISY;
+        if (error.is(NO_BIRD_SIGNAL)) return AudioQualityException.Reason.NO_BIRD_SIGNAL;
+        return AudioQualityException.Reason.UNKNOWN;
     }
 
     private byte[] fetchAudio(String audioUrl) {

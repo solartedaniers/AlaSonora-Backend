@@ -11,5 +11,11 @@ public enum ApiErrorCode {
     USERNAME_INVALID,
     USERNAME_TAKEN,
     AUDIO_TOO_LARGE,
-    AUDIO_UNSUPPORTED
+    AUDIO_UNSUPPORTED,
+    AUDIO_TOO_NOISY,
+    NO_BIRD_SIGNAL,
+    // 422 del motor sin código (motor anterior): el audio fue rechazado sin saber la causa exacta.
+    AUDIO_REJECTED,
+    NO_BIRD_IN_PHOTO,
+    PHOTO_UNAVAILABLE
 }

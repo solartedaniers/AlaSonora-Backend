@@ -1,14 +1,21 @@
 package com.alasonora.backend.ai;
 
 /**
- * Señala que el motor de IA rechazó el audio por su calidad (ruido excesivo o
- * ausencia de canto de ave detectable), no por una falla de infraestructura.
- * Se distingue de {@link AudioClassificationException} para que el llamador
- * pueda devolver el mensaje exacto del motor en vez de un error genérico.
+ * El motor rechazó el audio por su calidad, no por una falla de infraestructura. UNKNOWN es un 422 sin
+ * código (motor anterior): conservo su detalle en el mensaje.
  */
 public class AudioQualityException extends RuntimeException {
 
-    public AudioQualityException(String message) {
+    public enum Reason { TOO_NOISY, NO_BIRD_SIGNAL, UNKNOWN }
+
+    private final Reason reason;
+
+    public AudioQualityException(Reason reason, String message) {
         super(message);
+        this.reason = reason;
+    }
+
+    public Reason reason() {
+        return reason;
     }
 }

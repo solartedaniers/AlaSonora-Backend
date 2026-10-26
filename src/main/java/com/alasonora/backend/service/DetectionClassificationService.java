@@ -74,7 +74,12 @@ public class DetectionClassificationService {
                 request.recordedAt()
             ));
         } catch (AudioQualityException ex) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), ex);
+            throw switch (ex.reason()) {
+                case TOO_NOISY -> new CodedResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, ApiErrorMessages.AUDIO_TOO_NOISY, ApiErrorCode.AUDIO_TOO_NOISY);
+                case NO_BIRD_SIGNAL -> new CodedResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, ApiErrorMessages.NO_BIRD_SIGNAL, ApiErrorCode.NO_BIRD_SIGNAL);
+                // Motor sin códigos: sigo respondiendo 422 con su detalle, con un código genérico para el frontend.
+                case UNKNOWN -> new CodedResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), ApiErrorCode.AUDIO_REJECTED);
+            };
         } catch (AudioFileRejectedException ex) {
             throw ex.reason() == AudioFileRejectedException.Reason.TOO_LARGE
                 ? new CodedResponseStatusException(HttpStatus.CONTENT_TOO_LARGE, ApiErrorMessages.AUDIO_TOO_LARGE, ApiErrorCode.AUDIO_TOO_LARGE)
