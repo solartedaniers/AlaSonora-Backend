@@ -56,7 +56,9 @@ class AiEngineWakeUpServiceTest {
     @AfterEach
     void stopStubEngine() {
         server.stop(0);
-        attached.forEach(Runnable::run);
+        for (Runnable task : attached) {
+            task.run();
+        }
     }
 
     @Test
@@ -149,6 +151,14 @@ class AiEngineWakeUpServiceTest {
         AiProperties.Engine engine = new AiProperties.Engine(base, "key", 2000, 0.1, 3, 1000, 1, 10, 1000);
         AiProperties properties = new AiProperties(engine, null, null, null, new AiProperties.Wake(1000, maxDurationMs, 10, 60_000));
         readiness = new AiEngineReadiness(Clock.systemUTC(), properties);
-        return new AiEngineWakeUpService(new AiEngineHealthClient(properties), readiness, queued::add, properties);
+        return new AiEngineWakeUpService(new AiEngineHealthClient(properties), readiness, new QueueingExecutor(), properties);
+    }
+
+    // Guardo la tarea en la cola en vez de correrla.
+    private final class QueueingExecutor implements Executor {
+        @Override
+        public void execute(Runnable command) {
+            queued.add(command);
+        }
     }
 }

@@ -44,8 +44,8 @@ class AiTaskRunnerTest {
     @Test
     void answersBusyInsteadOfRunningOnTheCallerThreadWhenFull() {
         AiTaskRunner runner = new AiTaskRunner(pool(1, 1, 1));
-        runner.supply(this::block);
-        runner.supply(this::block);
+        runner.supply(() -> block());
+        runner.supply(() -> block());
         AtomicReference<String> ranOn = new AtomicReference<>();
 
         CodedResponseStatusException busy = assertThrows(CodedResponseStatusException.class,

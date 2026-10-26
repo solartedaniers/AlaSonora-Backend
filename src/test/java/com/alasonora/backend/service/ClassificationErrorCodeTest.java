@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -26,8 +27,7 @@ import com.alasonora.backend.exception.CodedResponseStatusException;
 /** Cada rechazo del motor sale con su ApiErrorCode: el frontend ya no depende del mensaje. */
 class ClassificationErrorCodeTest {
 
-    // Corro la tarea en el mismo hilo: aquí solo pruebo la traducción del error.
-    private final AiTaskRunner runner = new AiTaskRunner(Runnable::run);
+    private final AiTaskRunner runner = new AiTaskRunner(new SameThreadExecutor());
     private final AiProperties properties = new AiProperties(null, null, new AiProperties.Catalog("disclaimer"), null,
         new AiProperties.Wake(1000, 1000, 10, 60_000));
 
@@ -78,5 +78,13 @@ class ClassificationErrorCodeTest {
             return assertInstanceOf(CodedResponseStatusException.class, wrapped.getCause());
         }
         throw new AssertionError("expected a coded error");
+    }
+
+    // Corro la tarea en el mismo hilo: aquí solo pruebo la traducción del error.
+    private static final class SameThreadExecutor implements Executor {
+        @Override
+        public void execute(Runnable command) {
+            command.run();
+        }
     }
 }
