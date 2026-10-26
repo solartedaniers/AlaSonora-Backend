@@ -4,6 +4,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
@@ -28,6 +30,7 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 public class BirdNetHttpClassifier implements BirdSoundClassifier {
 
+    private static final Logger log = LoggerFactory.getLogger(BirdNetHttpClassifier.class);
     // Respuestas del proxy de Render mientras el servicio arranca o se cae: vale la pena reintentar.
     private static final Set<Integer> TRANSIENT_STATUSES = Set.of(502, 503, 504);
 
@@ -88,9 +91,11 @@ public class BirdNetHttpClassifier implements BirdSoundClassifier {
         MultiValueMap<String, ?> parts = body.build();
 
         for (int attempt = 0; ; attempt++) {
+            long start = System.nanoTime();
             try {
                 return analyze(parts);
             } catch (RestClientResponseException ex) {
+                warnFailure(ex, start);
                 if (ex.getStatusCode() == HttpStatusCode.valueOf(422)) {
                     throw new AudioQualityException(extractDetailMessage(ex));
                 }
@@ -99,12 +104,18 @@ public class BirdNetHttpClassifier implements BirdSoundClassifier {
                 }
                 if (!waitBeforeRetry(attempt, deadline)) throw new AiEngineUnavailableException("Bioacoustic engine unavailable", ex);
             } catch (ResourceAccessException ex) {
+                warnFailure(ex, start);
                 // Conexión rechazada o sin respuesta: el motor está apagado o despertando.
                 if (!waitBeforeRetry(attempt, deadline)) throw new AiEngineUnavailableException("Bioacoustic engine unreachable", ex);
             } catch (RestClientException ex) {
+                warnFailure(ex, start);
                 throw new AudioClassificationException("Bioacoustic engine call failed", ex);
             }
         }
+    }
+
+    private void warnFailure(RestClientException ex, long startNanos) {
+        AiEngineCallLog.warnFailure(log, "classification", engineProperties.host(), ex, AiEngineCallLog.elapsedMs(startNanos));
     }
 
     private List<RawClassificationCandidate> analyze(MultiValueMap<String, ?> parts) {

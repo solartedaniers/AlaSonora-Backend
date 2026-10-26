@@ -3,6 +3,8 @@ package com.alasonora.backend.ai;
 import java.time.Duration;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -22,6 +24,7 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 public class BirdPhotoHttpClassifier implements BirdPhotoClassifier {
 
+    private static final Logger log = LoggerFactory.getLogger(BirdPhotoHttpClassifier.class);
     private final RestClient engineClient;
     private final AiProperties.Engine engineProperties;
     private final AiProperties.Photo photoProperties;
@@ -49,6 +52,7 @@ public class BirdPhotoHttpClassifier implements BirdPhotoClassifier {
         body.part("min_confidence", photoProperties.minConfidence());
         body.part("max_results", photoProperties.maxResults());
 
+        long start = System.nanoTime();
         try {
             EngineResponse response = engineClient.post()
                 .uri("/classify-photo")
@@ -64,11 +68,13 @@ public class BirdPhotoHttpClassifier implements BirdPhotoClassifier {
                 .map(c -> new RawPhotoClassificationCandidate(c.label(), c.confidence() * 100))
                 .toList();
         } catch (RestClientResponseException ex) {
+            AiEngineCallLog.warnFailure(log, "photo classification", engineProperties.host(), ex, AiEngineCallLog.elapsedMs(start));
             if (ex.getStatusCode() == HttpStatusCode.valueOf(422)) {
                 throw new NoBirdInPhotoException(extractDetailMessage(ex));
             }
             throw new PhotoClassificationException("Photo classification engine call failed", ex);
         } catch (RestClientException ex) {
+            AiEngineCallLog.warnFailure(log, "photo classification", engineProperties.host(), ex, AiEngineCallLog.elapsedMs(start));
             throw new PhotoClassificationException("Photo classification engine call failed", ex);
         }
     }
