@@ -20,6 +20,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -65,7 +66,9 @@ public class Detection {
     @Column(nullable = false)
     private double peakFrequencyHz;
 
+    // Fijo el orden en que se guardaron, también cuando las cargo en lote.
     @OneToMany(mappedBy = "detection", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
     private List<DetectionCandidate> alternatives = new ArrayList<>();
 
     @Embedded
