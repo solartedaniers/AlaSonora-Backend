@@ -6,11 +6,9 @@ import com.alasonora.backend.exception.CodedResponseStatusException;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -23,6 +21,7 @@ import com.alasonora.backend.ai.AudioQualityException;
 import com.alasonora.backend.ai.BirdSoundClassifier;
 import com.alasonora.backend.ai.ClassificationRequest;
 import com.alasonora.backend.ai.RawClassificationCandidate;
+import com.alasonora.backend.async.AiTaskRunner;
 import com.alasonora.backend.config.AiProperties;
 import com.alasonora.backend.dto.ClassificationResultDto;
 import com.alasonora.backend.dto.ClassifyDetectionRequest;
@@ -31,7 +30,7 @@ import com.alasonora.backend.dto.GeoLocationDto;
 import com.alasonora.backend.dto.SpeciesDto;
 
 /**
- * Orquesta una clasificación: corre en el bulkhead {@code aiTaskExecutor} (nunca en un
+ * Orquesta una clasificación: corre en el bulkhead de IA vía {@link AiTaskRunner} (nunca en un
  * hilo de Tomcat), llama al puerto {@link BirdSoundClassifier} y deja crecer el catálogo
  * con {@link SpeciesService} para las especies de BirdNET que aún no están en la base.
  */
@@ -42,26 +41,26 @@ public class DetectionClassificationService {
 
     private final BirdSoundClassifier classifier;
     private final SpeciesService speciesService;
-    private final Executor aiTaskExecutor;
+    private final AiTaskRunner aiTaskRunner;
     private final AiProperties.Catalog catalogProperties;
     private final AiEngineReadiness engineReadiness;
 
     public DetectionClassificationService(
         BirdSoundClassifier classifier,
         SpeciesService speciesService,
-        @Qualifier("aiTaskExecutor") Executor aiTaskExecutor,
+        AiTaskRunner aiTaskRunner,
         AiProperties aiProperties,
         AiEngineReadiness engineReadiness
     ) {
         this.classifier = classifier;
         this.speciesService = speciesService;
-        this.aiTaskExecutor = aiTaskExecutor;
+        this.aiTaskRunner = aiTaskRunner;
         this.catalogProperties = aiProperties.catalog();
         this.engineReadiness = engineReadiness;
     }
 
     public CompletableFuture<ClassificationResultDto> classify(ClassifyDetectionRequest request) {
-        return CompletableFuture.supplyAsync(() -> runClassification(request), aiTaskExecutor);
+        return aiTaskRunner.supply(() -> runClassification(request));
     }
 
     private ClassificationResultDto runClassification(ClassifyDetectionRequest request) {

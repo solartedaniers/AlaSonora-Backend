@@ -10,6 +10,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.AfterEach;
@@ -114,6 +116,21 @@ class AiEngineWakeUpServiceTest {
         assertEquals(1, asleep.size(), "Only the first cycle meets the sleeping engine");
         assertEquals(Level.INFO, asleep.get(0).getLevel());
         assertEquals(0, warnings);
+    }
+
+    @Test
+    void skipsTheWakeUpWithoutThrowingWhenTheAiPoolIsFull() {
+        String base = "http://127.0.0.1:" + server.getAddress().getPort();
+        AiProperties.Engine engine = new AiProperties.Engine(base, "key", 2000, 0.1, 3, 1000, 1, 10, 1000);
+        AiProperties properties = new AiProperties(engine, null, null, null, new AiProperties.Wake(1000, 60_000, 10, 60_000));
+        Executor full = task -> {
+            throw new RejectedExecutionException("full");
+        };
+        AiEngineWakeUpService service = new AiEngineWakeUpService(new AiEngineHealthClient(properties), new AiEngineReadiness(Clock.systemUTC(), properties), full, properties);
+
+        assertFalse(service.wakeUp());
+        assertFalse(service.wakeUp(), "Still full: it never runs on the caller thread");
+        assertEquals(0, healthCalls.get());
     }
 
     private ListAppender<ILoggingEvent> captureLogs(Class<?>... sources) {

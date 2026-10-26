@@ -12,6 +12,7 @@ public final class ApiErrorMessages {
     public static final String SPECIES_NOT_FOUND = "Species not found: ";
     public static final String ONLY_PUBLIC_VISIBILITY = "Only visibility=public is supported here";
     public static final String STORAGE_PATH_OUTSIDE_OWN_FOLDER = "Storage path must be inside the requester's own folder";
+    public static final String AI_ENGINE_BUSY = "The AI engine is busy; try again in a moment";
     public static final String BIOACOUSTIC_ENGINE_UNAVAILABLE = "The bioacoustic engine is unavailable";
     public static final String PHOTO_ENGINE_UNAVAILABLE = "The photo-classification engine is unavailable";
     public static final String PHOTO_UNREADABLE = "Could not read the uploaded photo";

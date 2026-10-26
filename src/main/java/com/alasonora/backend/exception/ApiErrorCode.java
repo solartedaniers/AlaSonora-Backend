@@ -7,6 +7,7 @@ package com.alasonora.backend.exception;
 public enum ApiErrorCode {
     NO_SPECIES_IDENTIFIED,
     AI_ENGINE_UNAVAILABLE,
+    AI_ENGINE_BUSY,
     USERNAME_INVALID,
     USERNAME_TAKEN,
     AUDIO_TOO_LARGE,

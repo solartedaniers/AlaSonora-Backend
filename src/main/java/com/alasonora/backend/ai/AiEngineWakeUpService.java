@@ -1,6 +1,7 @@
 package com.alasonora.backend.ai;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
@@ -39,12 +40,17 @@ public class AiEngineWakeUpService {
         this.wakeProperties = aiProperties.wake();
     }
 
-    /** Devuelve false si ya había un despertar en curso: en ese caso no lanzo otro. */
+    /** Devuelve false si ya había un despertar en curso o el pool de IA está lleno: en ese caso no lanzo otro. */
     public boolean wakeUp() {
         if (!inProgress.compareAndSet(false, true)) return false;
         try {
             aiTaskExecutor.execute(this::runWakeUp);
             return true;
+        } catch (RejectedExecutionException rejected) {
+            // Pool lleno: lo intento en la próxima consulta de estado, sin tomar el hilo de Tomcat.
+            inProgress.set(false);
+            log.warn("AI engine wake-up skipped: the AI pool and its queue are full");
+            return false;
         } catch (RuntimeException ex) {
             inProgress.set(false);
             throw ex;

@@ -56,6 +56,7 @@ ejemplo está en `.env.example`. Ninguno de estos valores es real.
 | `AI_ENGINE_BASE_URL` | URL del motor de IA | No (`http://localhost:8000`) | `https://alasonora-ai-engine.onrender.com` |
 | `app.cors.allowed-origins` (o `APP_CORS_ALLOWEDORIGINS`) | Orígenes del frontend, separados por coma y sin barra final | No (`http://localhost:4200,http://localhost:4000`) | `https://alasonora.com,https://www.alasonora.com` |
 | `PORT` | Puerto HTTP. Render lo inyecta | No (`8083`) | `8083` |
+| `JPA_SHOW_SQL` | Escribe en el log cada consulta SQL. Solo para desarrollo | No (`false`) | `true` |
 
 El resto tiene un valor por defecto y está documentado en `src/main/resources/application.properties`:
 tiempos y reintentos del motor (`AI_ENGINE_*`), despertar del motor (`AI_ENGINE_WAKE_*`,
@@ -118,7 +119,8 @@ controller  →  service  →  repository (JPA)  →  PostgreSQL (Supabase)
 - **Seguridad**: soy un resource server OAuth2. Valido los JWT de Supabase con su JWKS (ES256) y saco
   el rol del perfil, así puedo usar `hasRole("ADMIN")` en `SecurityConfig`.
 - **Clasificación asíncrona**: `POST /api/detections/classify` corre en un pool aparte
-  (`aiTaskExecutor`), así una clasificación lenta no ocupa los hilos de Tomcat. Si el motor falla
+  (`aiTaskExecutor`), así una clasificación lenta no ocupa los hilos de Tomcat. Si el pool y su cola
+  (`AI_EXECUTOR_*`) están llenos, respondo 503 con `AI_ENGINE_BUSY` en vez de correrla en el hilo de Tomcat. Si el motor falla
   rápido (conexión rechazada, 502, 503, 504), reintento una vez mientras quepa en el
   `spring.mvc.async.request-timeout`.
 - **Grabaciones huérfanas**: una tarea diaria borra del bucket `recordings` los audios que se subieron

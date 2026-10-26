@@ -34,9 +34,8 @@ public class AsyncConfig {
         executor.setMaxPoolSize(config.maxPoolSize());
         executor.setQueueCapacity(config.queueCapacity());
         executor.setThreadNamePrefix("ai-task-");
-        // Contrapresión: con el pool y su cola llenos, ejecuto la tarea en el hilo que
-        // la pidió en vez de rechazarla o hacer crecer el pool sin límite.
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        // Con el pool y su cola llenos rechazo la tarea: nunca corre en el hilo de Tomcat (AiTaskRunner responde 503).
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
         executor.initialize();
         return executor;
     }

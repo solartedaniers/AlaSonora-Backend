@@ -6,9 +6,7 @@ import com.alasonora.backend.exception.CodedResponseStatusException;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,6 +16,7 @@ import com.alasonora.backend.ai.BirdPhotoClassifier;
 import com.alasonora.backend.ai.NoBirdInPhotoException;
 import com.alasonora.backend.ai.PhotoClassificationException;
 import com.alasonora.backend.ai.RawPhotoClassificationCandidate;
+import com.alasonora.backend.async.AiTaskRunner;
 import com.alasonora.backend.dto.PhotoClassificationCandidateDto;
 import com.alasonora.backend.dto.PhotoClassificationResultDto;
 
@@ -30,11 +29,11 @@ import com.alasonora.backend.dto.PhotoClassificationResultDto;
 public class PhotoClassificationService {
 
     private final BirdPhotoClassifier classifier;
-    private final Executor aiTaskExecutor;
+    private final AiTaskRunner aiTaskRunner;
 
-    public PhotoClassificationService(BirdPhotoClassifier classifier, @Qualifier("aiTaskExecutor") Executor aiTaskExecutor) {
+    public PhotoClassificationService(BirdPhotoClassifier classifier, AiTaskRunner aiTaskRunner) {
         this.classifier = classifier;
-        this.aiTaskExecutor = aiTaskExecutor;
+        this.aiTaskRunner = aiTaskRunner;
     }
 
     public CompletableFuture<PhotoClassificationResultDto> classify(MultipartFile photo) {
@@ -44,7 +43,7 @@ public class PhotoClassificationService {
         } catch (Exception ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ApiErrorMessages.PHOTO_UNREADABLE, ex);
         }
-        return CompletableFuture.supplyAsync(() -> runClassification(photoBytes), aiTaskExecutor);
+        return aiTaskRunner.supply(() -> runClassification(photoBytes));
     }
 
     private PhotoClassificationResultDto runClassification(byte[] photoBytes) {
