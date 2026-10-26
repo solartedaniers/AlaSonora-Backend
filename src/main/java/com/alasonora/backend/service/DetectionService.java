@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.alasonora.backend.config.SupabaseProperties;
+import com.alasonora.backend.exception.ApiErrorCode;
+import com.alasonora.backend.exception.CodedResponseStatusException;
 import com.alasonora.backend.dto.CreateDetectionRequest;
 import com.alasonora.backend.dto.DetectionDto;
 import com.alasonora.backend.entity.Detection;
@@ -19,6 +21,7 @@ import com.alasonora.backend.entity.DetectionCandidate;
 import com.alasonora.backend.entity.Species;
 import com.alasonora.backend.entity.Visibility;
 import com.alasonora.backend.repository.DetectionRepository;
+import com.alasonora.backend.storage.DetectionFileRemover;
 import com.alasonora.backend.storage.PrivateObjectSignedUrlResolver;
 import com.alasonora.backend.storage.SignedUrlException;
 
@@ -30,14 +33,17 @@ public class DetectionService {
     private final PrivateObjectSignedUrlResolver signedUrlResolver;
     private final SupabaseProperties.Storage storageProperties;
     private final ObserverNames observerNames;
+    private final DetectionFileRemover fileRemover;
 
     public DetectionService(
         DetectionRepository detectionRepository,
         SpeciesService speciesService,
         PrivateObjectSignedUrlResolver signedUrlResolver,
         SupabaseProperties supabaseProperties,
-        ObserverNames observerNames
+        ObserverNames observerNames,
+        DetectionFileRemover fileRemover
     ) {
+        this.fileRemover = fileRemover;
         this.observerNames = observerNames;
         this.detectionRepository = detectionRepository;
         this.speciesService = speciesService;
@@ -117,10 +123,26 @@ public class DetectionService {
 
     // Borro el registro sin importar su visibilidad: así sale del mapa y del historial a la vez.
     public void deleteDetection(Long id) {
-        if (!detectionRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, ApiErrorMessages.DETECTION_NOT_FOUND);
-        }
-        detectionRepository.deleteById(id);
+        Detection detection = detectionRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, ApiErrorMessages.DETECTION_NOT_FOUND));
+        remove(detection);
+    }
+
+    // Si es de otro respondo igual que si no existiera: no confirmo que el id es real.
+    public void deleteOwnDetection(Long id, UUID requesterId) {
+        Detection detection = detectionRepository.findById(id)
+            .filter(found -> found.getOwnerId().equals(requesterId))
+            .orElseThrow(() -> new CodedResponseStatusException(HttpStatus.NOT_FOUND, ApiErrorMessages.DETECTION_NOT_FOUND, ApiErrorCode.DETECTION_NOT_FOUND));
+        remove(detection);
+    }
+
+    /**
+     * Borrado que comparten el admin y el dueño: la cascada se lleva las alternativas y luego quito sus archivos.
+     * Sin @Transactional: el registro ya está confirmado antes de tocar Storage.
+     */
+    private void remove(Detection detection) {
+        detectionRepository.delete(detection);
+        fileRemover.removeFilesOf(detection);
     }
 
     // Los paths vienen del cliente y los firmo con la service_role key, que ignora RLS: sin esta revisión

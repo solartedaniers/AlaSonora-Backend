@@ -58,7 +58,7 @@ class DetectionQueryCountTest {
         PrivateObjectSignedUrlResolver signer = (bucket, path, ttl) -> bucket + ":" + path;
         SupabaseProperties supabase = new SupabaseProperties("url", "key", new SupabaseProperties.Storage("recordings", "observer-photos", 120));
         ObserverNames observerNames = new ObserverNames(profileRepository);
-        detectionService = new DetectionService(detectionRepository, null, signer, supabase, observerNames);
+        detectionService = new DetectionService(detectionRepository, null, signer, supabase, observerNames, null);
         notificationService = new NotificationService(detectionRepository, profileRepository, observerNames,
             Mockito.mock(ApproximateAreaResolver.class), new NotificationProperties(30, 60),
             Clock.fixed(Instant.parse("2026-10-26T12:00:00Z"), ZoneOffset.UTC));

@@ -17,5 +17,6 @@ public enum ApiErrorCode {
     // 422 del motor sin código (motor anterior): el audio fue rechazado sin saber la causa exacta.
     AUDIO_REJECTED,
     NO_BIRD_IN_PHOTO,
-    PHOTO_UNAVAILABLE
+    PHOTO_UNAVAILABLE,
+    DETECTION_NOT_FOUND
 }
