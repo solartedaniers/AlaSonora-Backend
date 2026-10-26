@@ -81,7 +81,7 @@ class BirdNetHttpClassifierRetryTest {
 
         assertThrows(AiEngineUnavailableException.class, () -> classifier().classify(request()));
 
-        List<String> messages = logs.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+        List<String> messages = logs.list.stream().map(event -> event.getFormattedMessage()).toList();
         assertEquals(2, messages.size());
         for (String message : messages) {
             assertTrue(message.contains("host=127.0.0.1") && message.contains("status=502"), message);

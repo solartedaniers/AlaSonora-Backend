@@ -13,7 +13,8 @@ import com.alasonora.backend.config.AiProperties;
 /**
  * Despierta el motor en el pool de IA, nunca en un hilo de Tomcat: un solo despertar a la vez, que
  * repite GET /health hasta que responde o se agota ai.wake.max-duration-ms. Solo lo dispara un
- * usuario con sesión al pedir el estado; no hay keep-alive ni consultas programadas.
+ * usuario con sesión al pedir el estado; no hay keep-alive ni consultas programadas. Render no deja
+ * que otro servicio suyo despierte al motor (responde 429); lo despierta el navegador del usuario.
  */
 @Service
 public class AiEngineWakeUpService {
@@ -54,14 +55,21 @@ public class AiEngineWakeUpService {
         long start = System.nanoTime();
         long deadline = start + wakeProperties.maxDurationMs() * 1_000_000;
         int attempts = 0;
+        boolean asleepLogged = false;
         log.info("AI engine wake-up started");
         try {
             while (true) {
                 attempts++;
-                if (healthClient.isReady()) {
+                AiEngineHealthClient.Health health = healthClient.check();
+                if (health == AiEngineHealthClient.Health.READY) {
                     readiness.markReady();
                     log.info("AI engine wake-up finished: ready after {} ms, attempts={}", AiEngineCallLog.elapsedMs(start), attempts);
                     return;
+                }
+                // Un solo aviso por ciclo: sin esto serían ~60 WARN iguales mientras el motor duerme.
+                if (health == AiEngineHealthClient.Health.ASLEEP && !asleepLogged) {
+                    asleepLogged = true;
+                    log.info("AI engine is asleep (status=429): waiting for the engine to be woken by client traffic");
                 }
                 if (System.nanoTime() + wakeProperties.retryBackoffMs() * 1_000_000 >= deadline || !pause()) break;
             }

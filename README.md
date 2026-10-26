@@ -73,7 +73,7 @@ Todas las rutas van bajo `/api` y, salvo las públicas, exigen `Authorization: B
 | `PUT /detections/{id}/observer-photo` | sesión | Asocia la foto del observador |
 | `POST /detections/classify` | sesión | Clasifica un audio con el motor de IA (asíncrono) |
 | `POST /photo-classifications` | sesión | Identifica un ave por foto |
-| `GET /ai/status` | sesión | Último estado conocido del motor de IA, al instante; si no está listo, lo despierta en segundo plano (`ai.wake.*`) |
+| `GET /ai/status` | sesión | Último estado conocido del motor de IA, al instante; si no está listo, lo despierta en segundo plano (`ai.wake.*`). Render frena con 429 ese despertar entre servicios suyos, así que también lo despierta el navegador del usuario |
 | `GET /profile/me`, `PUT /profile/me` | sesión | Perfil propio |
 | `GET /notifications`, `POST /notifications/read` | sesión | Avisos de la campana |
 | `/admin/**` | rol ADMIN | Gestión de usuarios y moderación de detecciones |

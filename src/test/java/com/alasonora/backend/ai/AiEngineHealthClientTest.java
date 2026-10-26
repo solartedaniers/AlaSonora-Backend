@@ -13,6 +13,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
+import com.alasonora.backend.ai.AiEngineHealthClient.Health;
 import com.alasonora.backend.config.AiProperties;
 import com.sun.net.httpserver.HttpServer;
 
@@ -37,25 +38,32 @@ class AiEngineHealthClientTest {
 
     @Test
     void readyOnlyWithEngineJson() throws IOException {
-        assertTrue(clientServing(200, "application/json", "{\"status\":\"ok\"}").isReady());
+        assertEquals(Health.READY, clientServing(200, "application/json", "{\"status\":\"ok\"}").check());
     }
 
     @Test
     void renderWakingPageIsNotReady() throws IOException {
-        assertFalse(clientServing(200, "text/html", "<html><body>Service waking up…</body></html>").isReady());
+        assertEquals(Health.FAILED, clientServing(200, "text/html", "<html><body>Service waking up…</body></html>").check());
     }
 
     @Test
     void serverErrorIsNotReady() throws IOException {
-        assertFalse(clientServing(503, "text/plain", "Service Unavailable").isReady());
+        assertEquals(Health.FAILED, clientServing(503, "text/plain", "Service Unavailable").check());
+    }
+
+    @Test
+    void renderThrottlingIsAsleepAndNotWarned() throws IOException {
+        captureLogs();
+        assertEquals(Health.ASLEEP, clientServing(429, "text/plain", "Too Many Requests").check());
+        assertTrue(logs.list.isEmpty());
     }
 
     @Test
     void failureIsLoggedWithHostAndStatusButNoSecrets() throws IOException {
         captureLogs();
-        clientServing(503, "text/plain", "Service Unavailable " + API_KEY).isReady();
+        clientServing(503, "text/plain", "Service Unavailable " + API_KEY).check();
 
-        List<String> messages = logs.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+        List<String> messages = logs.list.stream().map(event -> event.getFormattedMessage()).toList();
         assertEquals(1, messages.size());
         assertTrue(messages.get(0).contains("host=127.0.0.1"), messages.get(0));
         assertTrue(messages.get(0).contains("status=503"), messages.get(0));
@@ -65,7 +73,7 @@ class AiEngineHealthClientTest {
 
     @Test
     void invalidBaseUrlIsNotReadyAndDoesNotThrow() {
-        assertFalse(new AiEngineHealthClient(properties("not a url")).isReady());
+        assertEquals(Health.FAILED, new AiEngineHealthClient(properties("not a url")).check());
     }
 
     private void captureLogs() {
