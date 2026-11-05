@@ -67,6 +67,11 @@ flowchart LR
     storage["Storage"]
     realtime["Realtime"]
   end
+  subgraph external["Fuentes externas"]
+    wikidata["Wikidata"]
+    commons["Wikimedia Commons"]
+    xenocanto["Xeno-canto"]
+  end
   user -->|páginas SSR y la app| fe
   user -->|API REST con JWT| be
   user -->|"GET /health para despertarlo"| ia
@@ -77,6 +82,9 @@ flowchart LR
   be --> db
   be -->|valido el JWT con JWKS| auth
   be -->|URLs firmadas y borrado| storage
+  fe -->|"SSR de /map: feed público"| be
+  db -->|"trigger: detección pública nueva"| realtime
+  be -->|"nombre en español, foto y cantos de referencia"| external
   classDef current fill:#0f766e,stroke:#134e4a,stroke-width:3px,color:#ffffff
   class be current
 ```
@@ -194,13 +202,82 @@ push a `main` y en cada pull request.
 
 ## Cómo está organizado
 
-```
-controller  →  service  →  repository (JPA)  →  PostgreSQL (Supabase)
-                  │
-                  ├── ai/           cliente HTTP del motor, reintentos y despertar
-                  ├── translation/  Wikidata, Wikimedia Commons y Xeno-canto
-                  ├── storage/      URLs firmadas, borrado de archivos y limpieza de huérfanas
-                  └── admin/        Admin API de Supabase (alta y suspensión de usuarios)
+```mermaid
+flowchart LR
+  client["Frontend<br/>REST con JWT"]
+  subgraph security["Seguridad (config/)"]
+    filterchain["SecurityConfig<br/>resource server OAuth2"]
+    jwtconv["ProfileRoleJwtAuthenticationConverter<br/>rol del perfil"]
+    publicpaths["PublicEndpoints<br/>lecturas sin sesión"]
+  end
+  subgraph controllers["controller/"]
+    detctrl["DetectionController"]
+    otherctrl["Profile, Species, NetworkStats,<br/>Notification, Username"]
+    aistatusctrl["AiStatusController"]
+    adminctrl["AdminController"]
+  end
+  subgraph services["service/"]
+    detsvc["DetectionService"]
+    classifysvc["DetectionClassificationService"]
+    othersvc["Profile, Species, NetworkStats,<br/>Notification, UserStats, Username"]
+  end
+  subgraph repositories["repository/ (Spring Data JPA)"]
+    repos["DetectionRepository<br/>ProfileRepository<br/>SpeciesRepository"]
+  end
+  db[("PostgreSQL<br/>Supabase")]
+  subgraph asyncpool["async/"]
+    runner["AiTaskRunner"]
+    executor["aiTaskExecutor<br/>pool acotado + cola,<br/>503 AI_ENGINE_BUSY si se llena"]
+  end
+  subgraph ai["ai/"]
+    validator["AudioFileValidator"]
+    birdnetclient["BirdNetHttpClassifier<br/>reintento ante fallo rápido"]
+    wakeup["AiEngineWakeUpService y<br/>AiEngineHealthClient"]
+  end
+  subgraph storage["storage/"]
+    signer["SupabasePrivateObjectSignedUrlResolver"]
+    remover["DetectionFileRemover y<br/>SupabaseStorageObjectRemover"]
+    cleanup["OrphanRecordingCleanupJob<br/>cada 24 h"]
+  end
+  subgraph translation["translation/"]
+    translators["Wikidata, Wikimedia Commons<br/>y Xeno-canto"]
+  end
+  subgraph admin["admin/"]
+    adminsvc["AdminUserService y<br/>SupabaseAdminClient"]
+  end
+  engine["Motor de IA<br/>/analyze y /health"]
+  supastorage["Supabase Storage"]
+  supaadmin["Supabase Admin API"]
+  externalapis["APIs externas"]
+
+  client --> filterchain
+  filterchain --> jwtconv
+  filterchain --> publicpaths
+  filterchain --> controllers
+  detctrl --> detsvc
+  detctrl --> classifysvc
+  otherctrl --> othersvc
+  aistatusctrl --> wakeup
+  adminctrl --> adminsvc
+  detsvc --> repos
+  othersvc --> repos
+  repos --> db
+  classifysvc --> runner
+  runner --> executor
+  executor --> birdnetclient
+  birdnetclient -->|"firma real del archivo"| validator
+  birdnetclient -->|"descarga el audio"| supastorage
+  birdnetclient -->|"X-Internal-Api-Key"| engine
+  wakeup -->|"GET /health"| engine
+  classifysvc --> othersvc
+  detsvc -->|"URLs firmadas para escuchar"| signer
+  detsvc --> remover
+  othersvc -->|"SpeciesService"| translators
+  signer --> supastorage
+  remover --> supastorage
+  cleanup --> supastorage
+  translators --> externalapis
+  adminsvc --> supaadmin
 ```
 
 - **Seguridad**: soy un resource server OAuth2. Valido los JWT de Supabase con su JWKS (ES256) y saco
